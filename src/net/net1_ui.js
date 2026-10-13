@@ -7,6 +7,8 @@
    shim prefixes it), the last account name in 'mp:acc'.
    ===================================================================== */
 const MPS={list:[],editing:-1,direct:false};
+/* the featured server: always at the top, cannot be deleted or edited away */
+const MP_FEATURED={n:'Arcside — Featured',a:'play.arcside.us.kg',f:1};
 async function mpLoadServers(){
   try{
     if(!window.storage||!window.storage.get)return;
@@ -14,6 +16,10 @@ async function mpLoadServers(){
     MPS.list=r&&r.value?JSON.parse(r.value):[];
   }catch(e){MPS.list=[];}
   if(!Array.isArray(MPS.list))MPS.list=[];
+  MPS.list=MPS.list.filter(s=>s&&typeof s.a==='string');
+  const fi=MPS.list.findIndex(s=>s.a===MP_FEATURED.a);
+  if(fi<0)MPS.list.unshift({...MP_FEATURED});
+  else MPS.list[fi]={...MP_FEATURED,a:MP_FEATURED.a};
 }
 function mpSaveServers(){
   try{if(window.storage&&window.storage.set)window.storage.set('mp:servers',JSON.stringify(MPS.list));}catch(e){}
@@ -32,16 +38,21 @@ function mpRenderList(){
   }
   MPS.list.forEach((s,i)=>{
     const row=document.createElement('div');row.className='mprow';
-    const b=document.createElement('button');b.className='mc-btn mpjoin';
+    const b=document.createElement('button');b.className='mc-btn mpjoin'+(s.f?' mpfeat':'');
     const n=document.createElement('span');n.className='mpn';n.textContent=s.n||'Server';
     const a=document.createElement('span');a.className='mpa';a.textContent=s.a||'';
     b.appendChild(n);b.appendChild(a);
+    if(s.f){const badge=document.createElement('span');badge.className='mpbadge';
+      badge.textContent='FEATURED';b.appendChild(badge);}
     b.onclick=()=>{playS('click');mpJoin(s.a);};
-    const e=document.createElement('button');e.className='mc-btn mpmini';e.textContent='Edit';
-    e.onclick=()=>{playS('click');mpEditOpen(i);};
-    const x=document.createElement('button');x.className='mc-btn mpmini mpdel';x.textContent='X';
-    x.onclick=()=>{playS('click');MPS.list.splice(i,1);mpSaveServers();mpRenderList();};
-    row.appendChild(b);row.appendChild(e);row.appendChild(x);box.appendChild(row);
+    if(!s.f){
+      const e=document.createElement('button');e.className='mc-btn mpmini';e.textContent='Edit';
+      e.onclick=()=>{playS('click');mpEditOpen(i);};
+      const x=document.createElement('button');x.className='mc-btn mpmini mpdel';x.textContent='X';
+      x.onclick=()=>{playS('click');MPS.list.splice(i,1);mpSaveServers();mpRenderList();};
+      row.appendChild(e);row.appendChild(x);
+    }
+    row.appendChild(b);box.appendChild(row);
   });
 }
 function mpJoin(addrStr){

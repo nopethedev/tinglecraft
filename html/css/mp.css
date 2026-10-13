@@ -61,3 +61,17 @@ body.touch #chatin{font-size:16px}
 .mpg-admrow .mc-in{flex:2;min-width:120px}
 .mpg-amt{width:74px;flex:none;padding:6px 4px}
 .mpdel{border-color:#a33;color:#ffb0b0}
+
+/* featured server row */
+.mpfeat{border-color:#ffd24d;box-shadow:0 0 12px rgba(255,210,77,.25)}
+.mpbadge{font-size:10px;font-weight:bold;letter-spacing:1px;color:#1d1a08;
+  background:#ffd24d;border-radius:4px;padding:2px 6px;margin-left:auto;flex:none}
+
+/* inventory hover tooltips (Minecraft-style) */
+#invtip{position:fixed;z-index:9999;display:none;pointer-events:none;
+  max-width:260px;padding:7px 10px;border-radius:6px;
+  background:rgba(16,10,26,.94);border:2px solid #3a2a55;
+  box-shadow:0 4px 14px rgba(0,0,0,.5);font-size:13.5px;line-height:1.35}
+#invtip .itip-n{font-weight:bold;color:#fff;margin-bottom:2px}
+#invtip .itip-l{color:#b9b3c9}
+#invtip .itip-e{color:#8ee05a}

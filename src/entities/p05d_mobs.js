@@ -218,7 +218,8 @@ function killMob(e){
   if(DIM!=='puppet'&&Math.random()<FIG_CHANCE)
     spawnDrop(e.x,e.y+0.6,e.z,{id:IT.FIGURINE,count:1,mob:{t:e.mt}},(Math.random()-0.5)*2,2.5,(Math.random()-0.5)*2);
   if(GR.ghosts&&DIM!=='puppet'&&Math.random()<GHOST_CHANCE)spawnGhost(e.mt,e.x,e.y+0.5,e.z);
-  if(T.drop){
+  /* relayed mobs pay their loot through the server (no double-dipping) */
+  if(T.drop&&!(e.netmid!=null&&NET.on&&!T.pmob)){
     const n=T.drop.min+Math.floor(Math.random()*(T.drop.max-T.drop.min+1));
     if(n>0)spawnDrop(e.x,e.y+0.4,e.z,{id:T.drop.id,count:n},(Math.random()-0.5)*2,2,(Math.random()-0.5)*2);
   }

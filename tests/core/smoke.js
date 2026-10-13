@@ -1094,8 +1094,8 @@ const ok=(n,c)=>{if(c)pass++;else{fail++;console.log('FAIL '+n);}};
   /* ---- v5.1: mercy settings (snail toggle + jumpscares off by default) ---- */
   V.startNewWorld('mercy','7','s');
   ok('jumpscares are off by default now',V.GR.jsc===0);
-  ok('the snail rule still defaults on',V.GR.snail===true);
-  V.GR.god=true;V.GR.mobSpawn=false;V.GR.jsc=0;
+  ok('the snail rule now defaults off',V.GR.snail===false);
+  V.GR.god=true;V.GR.mobSpawn=false;V.GR.jsc=0;V.GR.snail=true;
   for(let i=1;i<=60;i++)V.frameStep(300000+i*40);
   V.snailReset();
   for(let i=0;i<180;i++)V.frameStep(303000+i*45);

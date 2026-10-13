@@ -225,6 +225,12 @@ def main():
             proc.wait(5)
         except subprocess.TimeoutExpired:
             proc.kill()
+        if FAIL:
+            try:
+                print("---- server log (on failure) ----")
+                print(open(os.path.join(data_dir, "server.log")).read()[-4000:])
+            except OSError:
+                pass
         shutil.rmtree(data_dir, ignore_errors=True)
     print("\n%d passed, %d failed" % (PASS, FAIL))
     sys.exit(1 if FAIL else 0)
@@ -241,7 +247,7 @@ def run(port, data_dir):
     if w is None:
         print("  (cannot continue without the admin)")
         return
-    ok(w.get("v") == 2, "welcome speaks protocol v2")
+    ok(w.get("v") == 3, "welcome speaks protocol v3")
     ok(isinstance(w.get("shop"), list) and len(w["shop"]) > 10, "welcome carries the shop catalog")
     ok(isinstance(w.get("sell"), dict), "welcome carries the sell price list")
     ok("homes" in w, "welcome carries homes")
@@ -379,6 +385,10 @@ def run(port, data_dir):
     cws.send({"t": "register", "name": "Alex", "pass": "pass2"})
     aw = cws.wait_for("welcome")
     ok(aw is not None, "third player joins")
+    # stand next to the mob before hitting it (the anticheat checks reach)
+    cws.send({"t": "pos", "x": 11.5, "y": 41.0, "z": 13.5, "yaw": 0, "pitch": 0,
+              "dim": "over", "hp": 20, "held": 0})
+    time.sleep(0.25)
     cws.send({"t": "mobhit", "mid": mid, "dmg": 30})
     # server kills it: loot + bounty to Alex, mobdel + announcement to all
     kg = collect_until(cws, {"give", "balance", "sys"}, timeout=5,
@@ -424,6 +434,10 @@ def run(port, data_dir):
     ok(bw is None, "banned players cannot rejoin")
     ws.send({"t": "adm", "act": "unban", "name": "Alex"})
     time.sleep(0.3)
+    # Alex is back for the later protocol-v3 tests (pvp victim, ship stranger)
+    cws, aw4 = login(port, "Alex", "pass2", register=False)
+    ok(aw4 is not None, "unbanned Alex rejoins")
+    cws.send({"t": "pos", "x": 22.5, "y": 43.0, "z": -5.5, "dim": "over", "hp": 20})
 
     # ---- /shop chat command still works -------------------------------------
     pws.send({"t": "cmd", "txt": "/shop list"})
@@ -439,12 +453,178 @@ def run(port, data_dir):
     got = pws.wait_for("sys", pred=lambda m: "already have" in m.get("txt", ""))
     ok(got is not None, "home limit enforced")
 
+    # ==== protocol v3: state sync, batched edits, chests, ships, anticheat ====
+
+    # ---- welcome speaks v3 and carries the new fields ------------------------
+    ok(pw2.get("v") == 3, "welcome speaks protocol v3")
+    ok("ships" in pw2 and "mobs_list" in pw2 and "be" in pw2,
+       "welcome carries ships, the live mob list and block entities")
+
+    # ---- player state: save, rejoin, restore ---------------------------------
+    pws.send({"t": "state", "x": 21.5, "y": 43.0, "z": -5.5, "yaw": 0.4, "pitch": 0.1,
+              "dim": "over", "hp": 13, "hun": 9, "sel": 3, "xp": 42,
+              "inv": [None, [4, 7], None, [366, 1, 300]], "armor": [],
+              "spawn": [0.5, 40, 0.5]})
+    time.sleep(0.5)
+    pws.close()
+    time.sleep(0.3)
+    pws2, pw3 = login(port, "Steve", "pass1", register=False)
+    ok(pw3 is not None and pw3.get("st"), "rejoin hands back saved state")
+    st = pw3.get("st") or {}
+    ok(st.get("hp") == 13 and st.get("x") == 21.5, "state keeps hp and position")
+    ok(st.get("inv") and st["inv"][1] == [4, 7, None], "state keeps the inventory, slots aligned")
+    ok(st.get("xp") == 42 and st.get("sel") == 3, "state keeps xp and hotbar slot")
+    ok(st.get("dim") == "over", "state keeps the dimension")
+
+    # ---- settings blob (admins) ----------------------------------------------
+    ws.send({"t": "settings", "d": {"keepInv": True, "god": False, "cheats": True, "jsc": 25}})
+    time.sleep(0.4)
+    accs = json.load(open(os.path.join(data_dir, "accounts.json")))
+    ok(accs.get("Admin", {}).get("set", {}).get("keepInv") == 1,
+       "admin settings stored on the account")
+    ok(accs.get("Admin", {}).get("led_init") in (None, True), "ledger fields coexist")
+
+    # ---- batched block edits + mining ledger ----------------------------------
+    # Steve stands at 21.5,-5.5 (from his state): edit two planks nearby
+    pws2.send({"t": "pos", "x": 21.5, "y": 43.0, "z": -5.5, "yaw": 0, "pitch": 0,
+               "dim": "over", "hp": 13, "held": 0})
+    time.sleep(0.2)
+    pws2.send({"t": "sets", "list": [["10,-1", "21,40,-6", 0, 5],
+                                      ["10,-1", "22,40,-6", 0, 5]]})
+    g1 = ws.wait_for("set", pred=lambda m: m.get("lk") == "21,40,-6")
+    g2 = ws.wait_for("set", pred=lambda m: m.get("lk") == "22,40,-6")
+    ok(g1 is not None and g2 is not None, "batched edits relay as individual sets")
+    time.sleep(1.6)                     # the autosave flushes the ledger to disk
+    accs = json.load(open(os.path.join(data_dir, "accounts.json")))
+    ok(int(accs.get("Steve", {}).get("led", {}).get("5", 0)) >= 2,
+       "mining planks credits the economy ledger")
+    pws2.send({"t": "sell", "id": 5, "count": 2})
+    s2 = collect_until(pws2, {"sold", "balance"})
+    ok(s2.get("sold", {}).get("earn") == 2, "ledger-backed sell pays out")
+
+    # ---- selling unearned items is refused -------------------------------------
+    pws2.send({"t": "sell", "id": 104, "count": 9})
+    got = pws2.wait_for("sys", pred=lambda m: "ledger" in m.get("txt", ""), timeout=3)
+    ok(got is not None, "sell beyond the ledger is refused")
+
+    # ---- block entities (chests) relay ----------------------------------------
+    chest = {"t": "chest", "inv": [{"id": 4, "count": 2}] + [None] * 26}
+    pws2.send({"t": "be", "k": "over:21,40,-7", "d": chest})
+    b1 = ws.wait_for("be", pred=lambda m: m.get("k") == "over:21,40,-7")
+    ok(b1 is not None and (b1.get("d") or {}).get("t") == "chest",
+       "chest contents relay to other players")
+
+    # ---- ships ------------------------------------------------------------------
+    def pack_vox(n, bid):
+        out = struct.pack(">H", n)
+        for i in range(n):
+            dx = (i % 5) - 2
+            dy = 0 if i < 25 else 1
+            dz = (i // 5) - 2
+            out += struct.pack(">h", dx) + bytes([dy + 80]) + struct.pack(">h", dz) + bytes([bid])
+        return base64.b64encode(out).decode()
+    pws2.send({"t": "shipadd", "sid": "st-ship1", "d": pack_vox(30, 5),
+               "x": 21.5, "y": 40.0, "z": -5.5, "yaw": 0.0})
+    sh1 = ws.wait_for("shipadd", pred=lambda m: m.get("sid") == "st-ship1")
+    ok(sh1 is not None and sh1.get("rider") == "Steve", "ship assembly broadcasts with the rider")
+    pws2.send({"t": "shippos", "sid": "st-ship1", "x": 30.5, "y": 40.0, "z": -5.5, "yaw": 1.1})
+    sp1 = ws.wait_for("shippos", pred=lambda m: m.get("sid") == "st-ship1")
+    ok(sp1 is not None and sp1.get("x") == 30.5, "the driver streams ship physics")
+    # a stranger cannot steer someone else's ship
+    cws.send({"t": "shippos", "sid": "st-ship1", "x": 999.0, "y": 40.0, "z": -5.5, "yaw": 0})
+    stray = ws.wait_for("shippos", pred=lambda m: m.get("sid") == "st-ship1" and m.get("x") == 999.0, timeout=1.5)
+    ok(stray is None, "only the ship's rider may stream its position")
+    pws2.send({"t": "shipdel", "sid": "st-ship1"})
+    sd1 = ws.wait_for("shipdel", pred=lambda m: m.get("sid") == "st-ship1")
+    ok(sd1 is not None, "ship teardown broadcasts")
+
+    # ---- backrooms levels ---------------------------------------------------------
+    pws2.send({"t": "cmd", "txt": "/backrooms 7"})
+    got = pws2.wait_for("sys", pred=lambda m: "admins" in m.get("txt", ""), timeout=3)
+    ok(got is not None, "level jumps are admin-only")
+    ws.send({"t": "cmd", "txt": "/backrooms 7"})
+    tp = ws.wait_for("teleport")
+    ok(tp is not None and tp.get("dim") == "backrooms" and
+       abs(tp.get("x", 0) - (7 * 6400 + 2.5)) < 1, "admin teleports to backrooms level 7")
+    # the client streams its new position right away (that is how the server
+    # learns which dimension you are in)
+    ws.send({"t": "pos", "x": tp["x"], "y": tp["y"], "z": tp["z"], "dim": "backrooms", "hp": 20})
+    time.sleep(0.2)
+    ws.send({"t": "cmd", "txt": "/backrooms 22"})
+    tp = ws.wait_for("teleport")
+    ok(tp is not None and abs(tp.get("x", 0) - (22 * 6400 + 2.5)) < 1,
+       "level 22 is The Exit")
+    ws.send({"t": "pos", "x": tp["x"], "y": tp["y"], "z": tp["z"], "dim": "backrooms", "hp": 20})
+    time.sleep(0.2)
+    ws.send({"t": "cmd", "txt": "/backrooms"})
+    tp = ws.wait_for("teleport")
+    ok(tp is not None and tp.get("dim") == "over", "/backrooms exits back to reality")
+    ws.send({"t": "pos", "x": tp["x"], "y": tp["y"], "z": tp["z"], "dim": "over", "hp": 20})
+
+    # ---- rtp: land-only teleport ----------------------------------------------------
+    pws2.send({"t": "cmd", "txt": "/rtp"})
+    rq = pws2.wait_for("rtp_req", timeout=5)
+    ok(rq is not None and isinstance(rq.get("cs"), list) and len(rq["cs"]) >= 5,
+       "rtp offers candidate spots")
+    if rq and rq.get("cs"):
+        c0 = rq["cs"][0]
+        pws2.send({"t": "rtp_res", "i": 0, "x": c0[0] + 0.5, "y": 40, "z": c0[1] + 0.5})
+        tp = pws2.wait_for("teleport", timeout=4)
+        ok(tp is not None and tp.get("dim") == "over", "rtp teleports to the picked spot")
+
+    # ---- pvp + death messages ---------------------------------------------------------
+    pws2.send({"t": "pos", "x": 21.5, "y": 43.0, "z": -5.5, "dim": "over", "hp": 13})
+    cws.send({"t": "pos", "x": 22.5, "y": 43.0, "z": -5.5, "dim": "over", "hp": 20})
+    time.sleep(0.2)
+    pws2.send({"t": "pvp", "name": "Alex", "dmg": 5, "how": "gun"})
+    pv = cws.wait_for("pvdmg", timeout=4)
+    ok(pv is not None and pv.get("dmg") == 5 and pv.get("from") == "Steve",
+       "a gun shot relays to the victim")
+    cws.send({"t": "idied", "by": "Steve", "how": "shot"})
+    got = pws2.wait_for("sys", pred=lambda m: "Alex died" in m.get("txt", ""), timeout=4)
+    ok(got is not None, "death is announced")
+
+    # ---- anticheat: reach -----------------------------------------------------------
+    pws2.send({"t": "set", "ck": "900,900", "lk": "900,40,900", "id": 27})
+    far = ws.wait_for("set", pred=lambda m: m.get("lk") == "900,40,900", timeout=1.5)
+    ok(far is None, "edits out of reach are rejected")
+
+    # ---- anticheat: impossible movement kicks ---------------------------------------
+    time.sleep(5.2)                     # let the rtp teleport grace expire
+    for i in range(14):
+        pws2.send({"t": "pos", "x": 0.5 if i % 2 else 900.5, "y": 40, "z": 0.5,
+                   "dim": "over", "hp": 13})
+        time.sleep(0.09)
+    kicked = pws2.wait_for("kick", timeout=5)
+    ok(kicked is not None and "Anticheat" in (kicked.get("reason") or ""),
+       "teleport-speed movement earns a kick")
+    pws2.close()
+    time.sleep(0.3)
+    pws3, _ = login(port, "Steve", "pass1", register=False)
+
+    # ---- anticheat: unearned items kick ----------------------------------------------
+    ch1 = WS(port)
+    ch1.send({"t": "register", "name": "Cheater", "pass": "cwnpass"})
+    chw = ch1.wait_for("welcome")
+    ok(chw is not None, "the cheater registers")
+    ch1.send({"t": "state", "x": 5, "y": 40, "z": 5, "dim": "over", "hp": 20,
+              "inv": [[2, 3]], "armor": []})           # baseline: honest
+    time.sleep(0.7)
+    for extra in ([104, 900], [104, 1800], [102, 900]):  # three unexplained gains
+        ch1.send({"t": "state", "x": 5, "y": 40, "z": 5, "dim": "over", "hp": 20,
+                  "inv": [extra], "armor": []})
+        time.sleep(0.7)
+    kicked = ch1.wait_for("kick", timeout=6)
+    ok(kicked is not None and "earn" in (kicked.get("reason") or ""),
+       "inventory cheats get kicked")
+    ch1.close()
+
     # ---- keepalive: server pings -----------------------------------------------
     ws.send({"t": "ping"})
     got = ws.wait_for("pong")
     ok(got is not None, "app-level ping/pong")
 
-    for x in (ws, pws, cws):
+    for x in (ws, pws3, cws):
         x.close()
 
 

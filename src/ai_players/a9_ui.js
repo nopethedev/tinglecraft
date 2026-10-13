@@ -194,7 +194,7 @@ function chatSubmit(raw){
     for(const t2 of a.thoughts.slice(-3))sysMsg('['+a.name+'] '+t2.txt);
     return;
   }
-  if(cmd==='backrooms'){brChatCmd();return;}
+  if(cmd==='backrooms'){brChatCmd(parts);return;}
   if(cmd==='help'||cmd==='?'){
     sysMsg('Chat: T or Enter to talk, / for commands. Everyone on the server sees normal chat.');
     sysMsg('/msg <player> <text> (or /w) whisper | /r <text> reply | /think <player> read their mind');

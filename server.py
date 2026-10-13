@@ -55,20 +55,40 @@ import threading
 import time
 
 DEFAULT_PORT = 8765
-PROTO_VERSION = 2
+PROTO_VERSION = 3
 MOTD = "Welcome to Tingle Craft. Be nice, build things, mind the Backrooms."
+FEATURED_ADDR = "play.arcside.us.kg"   # shown in every client's server list
 START_MONEY = 100
 RTP_RADIUS = 2000          # /rtp picks a random spot within this range
 TPA_TTL = 60.0             # /tpa requests expire after this many seconds
 SAVE_EVERY = 30.0          # periodic autosave, seconds
 DAY_LEN = 600.0            # seconds per in-game day (matches the client)
-MOB_CAP = 16               # server-relayed mobs at once
-MOB_SPAWN_EVERY = 4.0      # seconds between mob spawn attempts
+MOB_CAP = 24               # server-relayed mobs at once
+MOB_SPAWN_EVERY = 2.5      # seconds between mob spawn attempts
 TIME_BROADCAST = 5.0       # seconds between clock syncs
 HOME_LIMIT = 5             # homes per account (admins get 10)
 PING_EVERY = 30.0          # server->client keepalive pings
 STALE_AFTER = 95.0         # drop a client silent for this long
 NAME_RE = re.compile(r"^[A-Za-z0-9_-]{2,16}$")
+
+# The Backrooms: each level lives 6400 blocks further out on the x axis
+# (400 chunks of 16). Level 0 is the classic yellow maze at x 0..6399.
+BACK_STRIDE = 6400
+BACK_MAX = 22              # 0..20 lore levels, 21 poolrooms, 22 the exit
+
+# -- very simple anticheat -------------------------------------------------
+# The client simulates its own world, so the server watches for the tells:
+# impossible movement, edits out of reach, kills from across the map, and an
+# inventory that grows without a server-witnessed source (the classic
+# "give yourself diamonds" cheat). Admins are exempt from all of it.
+AC_SPEED = 46.0            # horizontal blocks/second that cannot be honest
+AC_REACH = 12.0            # max distance for a block edit
+AC_HIT_RANGE = 10.0        # max distance for a mob hit
+AC_PVP_RANGE = 160.0       # max distance for a gun shot claim
+AC_SNAP_SLACK = 64         # inventory may exceed the ledger by this much
+AC_KICK_STRIKES = 8        # movement/edit strikes before a kick
+AC_INV_STRIKES = 3         # inventory strikes before a kick
+AC_INV_BAN = 5             # inventory strikes before a ban
 
 # The in-game shop: id = the game's block/item id, price in DB (per unit).
 SHOP = [
@@ -86,8 +106,14 @@ SHOP = [
     {"n": "diamond",    "id": 104, "p": 60},
     {"n": "iron ingot", "id": 102, "p": 22},
     {"n": "coal",       "id": 101, "p": 6},
-    {"n": "steam engine","id": 248, "p": 120},
+    {"n": "steam engine", "id": 248, "p": 120},
     {"n": "conveyor",   "id": 249, "p": 18},
+    {"n": "M9",         "id": 366, "p": 150},
+    {"n": "AK47",       "id": 367, "p": 260},
+    {"n": "Remington",  "id": 368, "p": 180},
+    {"n": "ship helm",  "id": 369, "p": 400},
+    {"n": "bullet",     "id": 190, "p": 3},
+    {"n": "shell",      "id": 191, "p": 6},
 ]
 
 # What the /sell GUI pays for one unit (DB). Things the shop sells are
@@ -112,6 +138,32 @@ MOB_LOOT = {
 }
 MOB_REWARD = {"pig": 2, "cow": 2, "sheep": 2, "zombie": 4, "skel": 4,
               "boomer": 5, "spider": 4, "alien": 6}   # DB bounty to the killer
+
+# What mining each block is worth to the economy ledger (only ids the shop
+# trades in are tracked). Keyed by the block id that was broken; the value
+# is {granted item id: count}.
+ECON_IDS = set(SELL) | set(i["id"] for i in SHOP)
+BREAK_CREDIT = {
+    2: {2: 1},      # dirt -> dirt
+    4: {4: 1},      # cobblestone
+    5: {5: 1},      # oak planks
+    8: {8: 1},      # sand
+    9: {9: 1},      # gravel
+    16: {16: 1},    # glass (the shop sells it, so the ledger tracks it)
+    17: {101: 1},   # coal ore -> coal
+    20: {104: 1},   # diamond ore -> diamond
+    23: {23: 1},    # sandstone
+    26: {26: 1},    # wool
+    27: {27: 1},    # brick block
+    37: {105: 4},   # clay -> 4 clay balls
+    104: {104: 1},  # diamond block
+    101: {101: 1},  # coal block
+    102: {102: 1},  # iron block
+    103: {103: 1},  # gold block
+}
+for _bid in (10, 11, 12, 19, 28):
+    if _bid in ECON_IDS:
+        BREAK_CREDIT[_bid] = {_bid: 1}   # logs, gold ore, stone bricks
 
 
 # ---------------------------------------------------------------- storage --
@@ -367,10 +419,55 @@ class Player:
         self.dim = "over"
         self.hp = 20
         self.held = 0                 # block/item id in hand, relayed to others
-        self.rtp_wait = None          # (tx, tz, expiry): /rtp waiting for the client's surface reply
+        self.rtp_wait = None          # (candidates, expiry): /rtp waiting for the client's surface reply
         self.tpa_from = None          # {name: expiry} of incoming requests
+        self.enter_pos = None         # where you were before you noclipped into the Backrooms
         self.last_pos = 0.0
+        # anticheat bookkeeping
+        self.ac_x = None              # last audited position
+        self.ac_t = 0.0
+        self.ac_grace = 0.0           # teleports buy a few seconds of trust
+        self.ac_strikes = 0
+        self.ac_bucket = {}           # per-message-type rate limiter
+        self.ride_ship = None         # sid while driving a ship
         self.last_seen = time.time()  # any frame received; the reaper drops stale sockets
+
+    def strike(self, n, why):
+        self.ac_strikes += n
+        now = time.time()
+        if self.ac_strikes >= AC_KICK_STRIKES:
+            print("[anticheat] %s kicked: %s" % (self.name, why))
+            try:
+                asyncio.ensure_future(self.ws.send_json(
+                    {"t": "kick", "reason": "Anticheat: " + why}))
+            except (RuntimeError, ConnectionError):
+                pass
+            global_drop(self.name, "anticheat: " + why)
+        elif self.ac_strikes >= AC_KICK_STRIKES - 3 and now - self.ac_t > 2:
+            self.ac_t = now
+            try:
+                asyncio.ensure_future(self.ws.send_json(
+                    {"t": "sys", "txt": "[Server] That does not look possible. (%s)" % why}))
+            except (RuntimeError, ConnectionError):
+                pass
+
+    def allow(self, kind, per_sec):
+        """Token-bucket-ish rate limit: True if this message type is welcome."""
+        now = time.time()
+        win, cnt = self.ac_bucket.get(kind, (now, 0))
+        if now - win >= 1.0:
+            win, cnt = now, 0
+        cnt += 1
+        self.ac_bucket[kind] = (win, cnt)
+        return cnt <= per_sec
+
+
+def global_drop(name, why):
+    """drop() needs the Server instance; anticheat lives on the Player, so the
+    kick path routes through this late-bound hook set by Server.__init__."""
+    srv = getattr(global_drop, "srv", None)
+    if srv:
+        srv.drop(name, why)
 
 
 class Server:
@@ -378,6 +475,7 @@ class Server:
         self.host = host
         self.port = port
         self.store = store
+        global_drop.srv = self
         self.players = {}             # name -> Player
         self.consoles = []            # admin players subscribed to console output
         self.tpa_out = {}             # name -> {target: expiry}
@@ -387,6 +485,12 @@ class Server:
         self.mob_tick = 0.0
         self.time_tick = 0.0
         self.ping_tick = 0.0
+        self.ships = {}               # sid -> {d,x,y,z,yaw,rider,last}
+        self.ships_dirty = False
+        w = store.world
+        w.setdefault("ships", {})
+        w.setdefault("be", {})
+        w.setdefault("pvp", True)
 
     # ------------------------------------------------------------- helpers
     def online(self, name):
@@ -400,7 +504,7 @@ class Server:
 
     async def broadcast(self, obj, exclude=None):
         dead = []
-        for n, p in self.players.items():
+        for n, p in list(self.players.items()):   # a drop may mutate mid-loop
             if exclude and n == exclude:
                 continue
             if not await p.ws.send_json(obj):
@@ -483,7 +587,7 @@ class Server:
             import traceback
             self.console("error handling %r: %r\n%s" % (name, e, traceback.format_exc()))
         finally:
-            if name and name in self.players:
+            if name and name in self.players and self.players[name].ws is ws:
                 self.drop(name, "disconnected")
             if ws:
                 await ws.close()
@@ -544,6 +648,12 @@ class Server:
         self.players[name] = player
         if acc.get("admin"):
             self.consoles.append(name)
+        # the account's saved player state (inventory, position, hp, xp...)
+        # is handed back so rejoining never wipes progress again
+        st = acc.get("st") if isinstance(acc.get("st"), dict) else None
+        if st:
+            player.x, player.y, player.z = st.get("x", player.x), st.get("y", player.y), st.get("z", player.z)
+            player.dim = str(st.get("dim", "over"))[:16]
         # welcome: the seed, the whole edit list, spawn, balance, clock, shop
         await ws.send_json({
             "t": "welcome",
@@ -561,8 +671,16 @@ class Server:
             "sell": SELL,
             "homes": acc.get("homes", {}),
             "mobs": 1 if w.get("mobs_on", True) else 0,
+            "st": st,
+            "set": acc.get("set") if isinstance(acc.get("set"), dict) else None,
+            "be": w.get("be", {}),
+            "ships": [[sid, s["d"], s["x"], s["y"], s["z"], s["yaw"]]
+                      for sid, s in self.ships.items()],
+            "mobs_list": [[mid, mo["type"], mo["x"], mo["y"], mo["z"], mo["yaw"],
+                           mo["hp"], mo["dim"], mo["owner"]]
+                          for mid, mo in self.mobs.items()],
         })
-        if w.get("spawn"):
+        if w.get("spawn") and not st:
             player.x, player.y, player.z = w["spawn"]
         print("[join] %s%s" % (name, " (admin)" if player.admin else ""))
         await self.broadcast({"t": "join", "name": name}, exclude=name)
@@ -577,9 +695,14 @@ class Server:
             await p.ws.send_json({"t": "denied", "reason": "Already logged in as %r." % p.name})
             return
         if t == "pos":
-            p.x = float(m.get("x", p.x))
-            p.y = float(m.get("y", p.y))
-            p.z = float(m.get("z", p.z))
+            try:
+                nx = float(m.get("x", p.x)); ny = float(m.get("y", p.y)); nz = float(m.get("z", p.z))
+            except (TypeError, ValueError):
+                return
+            if not (math.isfinite(nx) and math.isfinite(ny) and math.isfinite(nz)):
+                p.strike(2, "NaN position")
+                return
+            p.x, p.y, p.z = nx, ny, nz
             p.yaw = float(m.get("yaw", p.yaw))
             p.pitch = float(m.get("pitch", p.pitch))
             p.dim = str(m.get("dim", p.dim))[:16]
@@ -587,6 +710,7 @@ class Server:
                 p.held = int(m.get("held", 0)) & 0xFFFF
             except (TypeError, ValueError):
                 p.held = 0
+            self.ac_move(p)
             now = time.time()
             if now - p.last_pos > 0.05:      # ~20 Hz cap
                 p.last_pos = now
@@ -596,37 +720,59 @@ class Server:
                     "dim": p.dim, "hp": int(m.get("hp", 20)), "held": p.held,
                 }, exclude=p.name)
         elif t == "set":
-            ck = str(m.get("ck", ""))[:32]
-            lk = str(m.get("lk", ""))[:24]
-            try:
-                bid = int(m.get("id", 0)) & 0xFF
-            except (TypeError, ValueError):
+            await self.block_edit(p, str(m.get("ck", ""))[:32], str(m.get("lk", ""))[:24],
+                                  m.get("id", 0), m.get("old"))
+        elif t == "sets":
+            lst = m.get("list")
+            if not isinstance(lst, list) or not p.allow("sets", 4):
                 return
-            if not ck or "," not in ck or "," not in lk:
+            for it in lst[:4000]:
+                if not isinstance(it, (list, tuple)) or len(it) < 3:
+                    continue
+                await self.block_edit(p, str(it[0])[:32], str(it[1])[:24],
+                                      it[2], it[3] if len(it) > 3 else None)
+        elif t == "state":
+            await self.save_state(p, m)
+        elif t == "settings":
+            d = m.get("d")
+            if isinstance(d, dict):
+                acc = self.store.account(p.name)
+                acc["set"] = {str(k)[:24]: (1 if v else 0) if isinstance(v, bool) else v
+                              for k, v in list(d.items())[:40]}
+                self.store.save_accounts()
+        elif t == "be":
+            # a chest/furnace/engine's contents changed on this client: store + relay
+            if not p.allow("be", 8):
                 return
-            self.store.world["edits"].setdefault(ck, {})[lk] = bid
-            self.store.dirty = True
-            await self.broadcast({"t": "set", "ck": ck, "lk": lk, "id": bid},
-                                 exclude=p.name)
+            k = str(m.get("k", ""))[:64]
+            d = m.get("d")
+            if k and isinstance(d, dict) and len(json.dumps(d)) < 60000:
+                self.store.world["be"][k] = d
+                self.store.dirty = True
+                await self.broadcast({"t": "be", "k": k, "d": d}, exclude=p.name)
+        elif t == "shipadd":
+            await self.ship_add(p, m)
+        elif t == "shippos":
+            await self.ship_pos(p, m)
+        elif t == "shipride":
+            await self.ship_ride(p, m)
+        elif t == "shipdel":
+            await self.ship_del(p, m)
+        elif t == "pvp":
+            await self.pvp_hit(p, m)
+        elif t == "idied":
+            by = str(m.get("by", ""))[:40]
+            how = str(m.get("how", ""))[:24]
+            await self.sys_all("%s died%s" % (p.name, (" (" + by + ")") if by else ""))
         elif t == "chat":
             txt = str(m.get("txt", "")).strip()[:200]
-            if txt:
+            if txt and p.allow("chat", 6):
                 await self.broadcast({"t": "chat", "from": p.name, "txt": txt})
         elif t == "cmd":
-            await self.command(p, str(m.get("txt", "")))
+            if p.allow("cmd", 12):
+                await self.command(p, str(m.get("txt", "")))
         elif t == "rtp_res":
-            pend = p.rtp_wait
-            p.rtp_wait = None
-            if pend and time.time() < pend[2] and abs(float(m.get("x", 1e9)) - pend[0]) < 1 and abs(float(m.get("z", 1e9)) - pend[1]) < 1:
-                try:
-                    x = float(m.get("x")); y = float(m.get("y")); z = float(m.get("z"))
-                    dim = str(m.get("dim", "over"))[:16]
-                    await p.ws.send_json({"t": "teleport", "x": x, "y": y, "z": z, "dim": dim})
-                    await self.sys_to(p, "RTP: whoosh. (%d, %d)" % (int(x), int(z)))
-                except (TypeError, ValueError):
-                    await self.sys_to(p, "RTP failed, try again.")
-            else:
-                await self.sys_to(p, "RTP failed, try again.")
+            self.rtp_resolved(p, m)
         elif t == "spawnset":
             if not self.store.world.get("spawn"):
                 sp = [round(float(m.get("x", 0)), 1), round(float(m.get("y", 40)), 1),
@@ -635,9 +781,11 @@ class Server:
                 self.store.dirty = True
                 self.console("spawn set to %r" % sp)
         elif t == "buy":
-            await self.shop_buy(p, str(m.get("item", "")), m.get("count", 1))
+            if p.allow("buy", 5):
+                await self.shop_buy(p, str(m.get("item", "")), m.get("count", 1))
         elif t == "sell":
-            await self.sell(p, m.get("id", 0), m.get("count", 0))
+            if p.allow("sell", 5):
+                await self.sell(p, m.get("id", 0), m.get("count", 0))
         elif t == "sethome":
             await self.sethome(p, str(m.get("name", "")))
         elif t == "home":
@@ -669,6 +817,139 @@ class Server:
             await p.ws.send_json({"t": "pong"})
         # unknown types are ignored
 
+    # -------------------------------------------------------- anticheat --
+    def ac_move(self, p):
+        """Position plausibility: nothing honest crosses 46 blocks a second."""
+        if p.admin:
+            return
+        now = time.time()
+        if now < p.ac_grace:
+            p.ac_x = (p.x, p.z)
+            return
+        if p.ac_x is not None:
+            dt = now - p.ac_t
+            if dt > 0.05:
+                d = math.hypot(p.x - p.ac_x[0], p.z - p.ac_x[1])
+                if d / dt > AC_SPEED:
+                    p.strike(1, "moved %d blocks in %.1fs" % (int(d), dt))
+        p.ac_x = (p.x, p.z)
+        p.ac_t = now
+
+    async def block_edit(self, p, ck, lk, bid, old):
+        try:
+            bid = int(bid) & 0xFF
+        except (TypeError, ValueError):
+            return
+        if not ck or "," not in ck or "," not in lk:
+            return
+        if not p.allow("set", 45):
+            return
+        try:
+            parts = lk.split(",")
+            bx, by, bz = float(parts[0]), float(parts[1]), float(parts[2])
+        except (TypeError, ValueError):
+            return
+        if not p.admin:
+            d = math.hypot(bx + 0.5 - p.x, by + 0.5 - p.y, bz + 0.5 - p.z)
+            if d > AC_REACH:
+                p.strike(1, "edited a block %d blocks away" % int(d))
+                return
+        old_id = None
+        try:
+            old_id = int(old) & 0xFF if old is not None else None
+        except (TypeError, ValueError):
+            old_id = None
+        self.store.world["edits"].setdefault(ck, {})[lk] = bid
+        self.store.dirty = True
+        await self.broadcast({"t": "set", "ck": ck, "lk": lk, "id": bid},
+                             exclude=p.name)
+        # economy ledger: a witnessed block break credits the drop table
+        if old_id and old_id != bid and not p.admin:
+            for gid, n in BREAK_CREDIT.get(old_id, {}).items():
+                acc = self.store.account(p.name)
+                led = acc.setdefault("led", {})
+                led[str(gid)] = min(100000, int(led.get(str(gid), 0)) + n)
+
+    async def save_state(self, p, m):
+        """The client's periodic player-state snapshot: position, inventory,
+        hp, hunger, xp, armor. Stored per account and handed back on rejoin."""
+        if not p.allow("state", 2):
+            return
+        try:
+            inv = m.get("inv")
+            if not isinstance(inv, list):
+                return
+            inv = inv[:36]
+            st = {
+                "x": round(max(-30000000, min(30000000, float(m.get("x", 0)))), 2),
+                "y": round(max(-40, min(400, float(m.get("y", 40)))), 2),
+                "z": round(max(-30000000, min(30000000, float(m.get("z", 0)))), 2),
+                "yaw": round(float(m.get("yaw", 0)), 3),
+                "pitch": round(float(m.get("pitch", 0)), 3),
+                "dim": str(m.get("dim", "over"))[:16],
+                "hp": max(0, min(20, int(m.get("hp", 20)))),
+                "hun": max(0, min(20, int(m.get("hun", 20)))),
+                "sel": max(0, min(8, int(m.get("sel", 0)))),
+                "xp": max(0, min(100000, int(m.get("xp", 0)))),
+                "inv": [([int(s[0]) & 0xFFFF, int(s[1]) & 0xFFF,
+                          int(s[2]) & 0xFFFF if len(s) > 2 and s[2] is not None else None]
+                         if isinstance(s, (list, tuple)) and len(s) >= 2 else None)
+                        for s in inv],
+                "armor": [[int(a[0]) & 0xFFFF,
+                           int(a[1]) & 0xFFFF if len(a) > 1 and a[1] is not None else None]
+                          for a in (m.get("armor") or [])[:4]
+                          if isinstance(a, (list, tuple)) and len(a) >= 1],
+                "spawn": m.get("spawn") if isinstance(m.get("spawn"), list) else None,
+            }
+        except (TypeError, ValueError):
+            return
+        acc = self.store.account(p.name)
+        acc["st"] = st
+        # anticheat: reconcile the inventory ledger against the snapshot
+        if not p.admin:
+            await self.ac_inv_audit(p, st["inv"])
+        # entering the Backrooms the normal way is remembered for the way out
+        if st["dim"] != "backrooms" and p.dim != "backrooms":
+            p.enter_pos = [st["x"], st["y"], st["z"]]
+
+    async def ac_inv_audit(self, p, inv):
+        acc = self.store.account(p.name)
+        led = acc.setdefault("led", {})
+        snap = {}
+        for s in inv:
+            if not isinstance(s, (list, tuple)) or len(s) < 2:
+                continue                      # empty slot
+            iid = str(s[0])
+            if int(iid) in ECON_IDS:
+                snap[iid] = snap.get(iid, 0) + int(s[1])
+        if not acc.get("led_init"):
+            # first snapshot this account has ever reported: baseline it
+            acc["led_init"] = True
+            for k, v in snap.items():
+                led[k] = max(int(led.get(k, 0)), v)
+            return
+        strikes = 0
+        for k, v in snap.items():
+            if v - int(led.get(k, 0)) > AC_SNAP_SLACK:
+                print("[anticheat] %s: %s x%d unaccounted (ledger %d)"
+                      % (p.name, k, v, int(led.get(k, 0))))
+                led[k] = v          # resync so one burst cannot repeat
+                strikes += 1
+        if strikes:
+            inv_strikes = int(acc.get("inv_strikes", 0)) + strikes
+            acc["inv_strikes"] = inv_strikes
+            if inv_strikes >= AC_INV_BAN:
+                if p.name.lower() not in [b.lower() for b in self.store.bans]:
+                    self.store.bans.append(p.name)
+                    self.store.save_bans()
+                await p.ws.send_json({"t": "kick", "reason": "Anticheat: duped items"})
+                global_drop(p.name, "anticheat: duped items")
+            elif inv_strikes >= AC_INV_STRIKES:
+                await p.ws.send_json({"t": "kick",
+                                      "reason": "Anticheat: items you did not earn (%s)" %
+                                                ", ".join(sorted(snap)[:3])})
+                global_drop(p.name, "anticheat: unearned items")
+
     # ---------------------------------------------------------- commands
     async def command(self, p, raw):
         raw = raw.strip()
@@ -684,12 +965,12 @@ class Server:
         if cmd in ("help", "?"):
             lines = [
                 "Commands: /list /money /pay <player> <amount> /rtp /tpa <player>",
-                "/tpaccept [player] /tpdeny /msg <player> <text> /spawn /backrooms",
+                "/tpaccept [player] /tpdeny /msg <player> <text> /spawn /backrooms [0-22]",
                 "/shop (GUI) /sell (GUI) /home [name] /sethome <name> /delhome <name> /homes",
             ]
             if p.admin:
                 lines.append("Admin: /kick /ban /op /deop /say /give <player> <amount> "
-                             "/time <0-1|day|night> /mobson /mobsoff")
+                             "/time <0-1|day|night> /mobson /mobsoff /pvp /backrooms <level>")
             await self.sys_to(p, " | ".join(lines))
         elif cmd in ("list", "players", "online"):
             await self.sys_to(p, "Online (%d): %s" % (len(self.players), ", ".join(self.online_names())))
@@ -724,11 +1005,17 @@ class Server:
             await self.sys_to(p, "Paid %d DB to %s." % (amt, to.name))
             await self.sys_to(to, "%s paid you %d DB." % (p.name, amt))
         elif cmd == "rtp":
-            ang = random.random() * 6.28318
-            d = random.uniform(200, RTP_RADIUS)
-            tx, tz = int(p.x + __import__("math").cos(ang) * d), int(p.z + __import__("math").sin(ang) * d)
-            p.rtp_wait = (tx, tz, time.time() + 10)
-            await p.ws.send_json({"t": "rtp_req", "tx": tx, "tz": tz})
+            # a handful of candidate spots; the client checks each against the
+            # real terrain (seeded, so it can judge without loading chunks) and
+            # answers with the first one that is honest dry land
+            cands = []
+            for _ in range(10):
+                ang = random.random() * 6.28318
+                d = random.uniform(200, RTP_RADIUS)
+                cands.append([int(p.x + math.cos(ang) * d), int(p.z + math.sin(ang) * d)])
+            p.rtp_wait = (cands, time.time() + 15)
+            p.ac_grace = time.time() + 5
+            await p.ws.send_json({"t": "rtp_req", "cs": cands})
         elif cmd == "tpa":
             to = self.online(args[0]) if args else None
             if not to:
@@ -792,15 +1079,48 @@ class Server:
             else:
                 await self.sys_to(p, "Spawn is not set yet (the first joiner sets it).")
         elif cmd == "backrooms":
-            if p.dim == "backrooms":
-                sp = self.store.world.get("spawn") or [0.5, 40, 0.5]
+            lvl = None
+            if args:
+                named = {"pool": 21, "poolrooms": 21, "exit": 22, "lobby": 0}
+                if args[0].lower() in named:
+                    lvl = named[args[0].lower()]
+                elif args[0].lstrip("-").isdigit():
+                    lvl = int(args[0])
+                if lvl is not None:
+                    if not p.admin:
+                        await self.sys_to(p, "Only admins can jump to a specific level. Plain /backrooms works for anyone.")
+                        return
+                    if not (0 <= lvl <= BACK_MAX):
+                        await self.sys_to(p, "Levels are 0-%d (21 poolrooms, 22 the exit)." % BACK_MAX)
+                        return
+            if p.dim == "backrooms" and lvl is None:
+                # leaving: back to where you noclipped in (or world spawn)
+                sp = p.enter_pos or self.store.world.get("spawn") or [0.5, 40, 0.5]
+                if p.enter_pos and len(p.enter_pos) > 3:
+                    back_dim = p.enter_pos[3]
+                else:
+                    back_dim = "over"
                 await p.ws.send_json({"t": "teleport", "x": sp[0], "y": sp[1], "z": sp[2],
-                                      "dim": "over"})
+                                      "dim": back_dim})
+                p.enter_pos = None
                 await self.sys_to(p, "You found an exit. Reality resumes.")
             else:
-                await p.ws.send_json({"t": "teleport", "x": 2.5, "y": 9.05, "z": 2.5,
+                if lvl is None:
+                    lvl = 0
+                    p.enter_pos = [round(p.x, 1), round(p.y, 1), round(p.z, 1), p.dim]
+                tx = lvl * BACK_STRIDE + 2.5
+                await p.ws.send_json({"t": "teleport", "x": tx, "y": 9.05, "z": 2.5,
                                       "dim": "backrooms"})
-                await self.sys_to(p, "You noclipped into the Backrooms. /backrooms to leave.")
+                p.ac_grace = time.time() + 5
+                nm = ("Level %d" % lvl) if lvl <= 20 else ("the Poolrooms" if lvl == 21 else "The Exit")
+                await self.sys_to(p, "You noclipped into the Backrooms: %s. /backrooms to leave." % nm)
+        elif cmd == "pvp":
+            if not need_admin():
+                await self.sys_to(p, "Admins only.")
+                return
+            self.store.world["pvp"] = not self.store.world.get("pvp", True)
+            self.store.dirty = True
+            await self.sys_all("PvP is now %s." % ("ON" if self.store.world["pvp"] else "OFF"))
         elif cmd == "shop":
             if not args or args[0].lower() == "list":
                 await self.sys_to(p, "Shop: " + ", ".join("%s %dDB" % (i["n"], i["p"]) for i in SHOP))
@@ -1113,7 +1433,8 @@ class Server:
                     self.mob_tick = 0.0
                     await self.mob_spawn_tick()
                 await self.mob_prune()
-                if self.store.dirty:
+                if self.store.dirty or self.ships_dirty:
+                    self.ships_dirty = False
                     self.store.save_world()
                 self.store.save_accounts()
             except Exception as e:
@@ -1151,6 +1472,8 @@ class Server:
                               % (count, item["n"], cost, int(acc.get("money", 0))))
             return
         acc["money"] = int(acc.get("money", 0)) - cost
+        led = acc.setdefault("led", {})
+        led[str(item["id"])] = min(100000, int(led.get(str(item["id"]), 0)) + count)
         self.store.save_accounts()
         await p.ws.send_json({"t": "balance", "amt": int(acc["money"])})
         await p.ws.send_json({"t": "give", "id": item["id"], "count": count,
@@ -1168,8 +1491,18 @@ class Server:
         if not price:
             await self.sys_to(p, "The shop does not buy that item.")
             return
-        earn = price * count
+        # the server pays only for items it can account for: mining, loot and
+        # purchases are all credited to a per-account ledger; anything more is
+        # the give-yourself-stuff cheat talking
         acc = self.store.account(p.name)
+        led = acc.setdefault("led", {})
+        held = int(led.get(str(item_id), 0))
+        if held < count:
+            await self.sys_to(p, "The ledger only counts %d of those (mine or buy a "
+                                 "little first — this stops duped items)." % held)
+            return
+        led[str(item_id)] = held - count
+        earn = price * count
         acc["money"] = int(acc.get("money", 0)) + earn
         self.store.save_accounts()
         await p.ws.send_json({"t": "balance", "amt": int(acc["money"])})
@@ -1407,6 +1740,11 @@ class Server:
         except (TypeError, ValueError):
             return
         mob["last"] = time.time()
+        if mob["hp"] <= 0:
+            # the simulating client killed it (fall, lava, its own AI): settle
+            # the kill through the server so loot and the corpse stay in sync
+            asyncio.ensure_future(self.mob_kill(mid, p))
+            return
         m2 = {"t": "mobpos", "mid": mid, "x": mob["x"], "y": mob["y"], "z": mob["z"],
               "yaw": mob["yaw"], "hp": mob["hp"]}
         asyncio.ensure_future(self.broadcast(m2, exclude=p.name))
@@ -1417,8 +1755,15 @@ class Server:
         mob = self.mobs.get(mid)
         if not mob:
             return
+        if not p.allow("mobhit", 12):
+            return
+        if not p.admin:
+            d = math.hypot(mob["x"] - p.x, mob["z"] - p.z)
+            if d > AC_HIT_RANGE:
+                p.strike(1, "hit a mob %d blocks away" % int(d))
+                return
         try:
-            dmg = max(0, min(100, int(m.get("dmg", 1))))
+            dmg = max(0, min(30, int(m.get("dmg", 1))))
         except (TypeError, ValueError):
             return
         mob["hp"] -= dmg
@@ -1458,12 +1803,17 @@ class Server:
             return
         mt = mob["type"]
         if killer:
+            kacc = self.store.account(killer.name)
+            kled = kacc.setdefault("led", {})
             rolls = MOB_LOOT.get(mt, [])
             for item_id, lo, hi in rolls:
                 n = random.randint(lo, hi)
                 if n > 0:
+                    if item_id in ECON_IDS:
+                        kled[str(item_id)] = min(100000, int(kled.get(str(item_id), 0)) + n)
                     await killer.ws.send_json({"t": "give", "id": item_id, "count": n,
                                                "name": "loot"})
+            self.store.save_accounts()
             reward = MOB_REWARD.get(mt, 0)
             if reward:
                 acc = self.store.account(killer.name)
@@ -1532,6 +1882,126 @@ class Server:
         for mid in list(self.mobs):
             if self.mobs[mid]["owner"] == name:
                 await self.reassign_one(mid)
+
+    # ------------------------------------------------------------ rtp v2 --
+    def rtp_resolved(self, p, m):
+        """The client judged the candidate list against the real terrain and
+        picked the first honest, dry spot (index i)."""
+        pend = p.rtp_wait
+        p.rtp_wait = None
+        if not pend or time.time() > pend[1]:
+            return
+        cands, _ = pend
+        try:
+            i = int(m.get("i", -1))
+        except (TypeError, ValueError):
+            return
+        if not (0 <= i < len(cands)):
+            # the client found no dry land among the candidates
+            asyncio.ensure_future(self.sys_to(p, "RTP could not find land, try again."))
+            return
+        tx, tz = cands[i]
+        try:
+            x = float(m.get("x", tx + 0.5)); y = float(m.get("y", 40)); z = float(m.get("z", tz + 0.5))
+        except (TypeError, ValueError):
+            return
+        if abs(x - (tx + 0.5)) > 2 or abs(z - (tz + 0.5)) > 2:
+            return
+        p.ac_grace = time.time() + 5
+        asyncio.ensure_future(p.ws.send_json(
+            {"t": "teleport", "x": x, "y": y, "z": z, "dim": "over"}))
+        asyncio.ensure_future(self.sys_to(p, "RTP: whoosh. (%d, %d)" % (tx, tz)))
+
+    # -------------------------------------------------------------- ships --
+    async def ship_add(self, p, m):
+        if not p.allow("shipadd", 3):
+            return
+        sid = str(m.get("sid", ""))[:24]
+        d = str(m.get("d", ""))
+        if not sid or not d or len(d) > 60000:
+            return
+        try:
+            x = round(float(m.get("x")), 2); y = round(float(m.get("y")), 2)
+            z = round(float(m.get("z")), 2); yaw = round(float(m.get("yaw", 0)), 3)
+        except (TypeError, ValueError):
+            return
+        self.ships[sid] = {"d": d, "x": x, "y": y, "z": z, "yaw": yaw,
+                           "rider": p.name, "last": time.time()}
+        self.ships_dirty = True
+        p.ride_ship = sid
+        p.ac_grace = time.time() + 4
+        await self.broadcast({"t": "shipadd", "sid": sid, "d": d, "x": x, "y": y,
+                              "z": z, "yaw": yaw, "rider": p.name}, exclude=p.name)
+
+    async def ship_pos(self, p, m):
+        sid = str(m.get("sid", ""))[:24]
+        sh = self.ships.get(sid)
+        if not sh or sh.get("rider") != p.name:
+            return
+        try:
+            sh["x"] = round(float(m.get("x")), 2); sh["y"] = round(float(m.get("y")), 2)
+            sh["z"] = round(float(m.get("z")), 2); sh["yaw"] = round(float(m.get("yaw", 0)), 3)
+        except (TypeError, ValueError):
+            return
+        sh["last"] = time.time()
+        self.ships_dirty = True
+        m2 = {"t": "shippos", "sid": sid, "x": sh["x"], "y": sh["y"], "z": sh["z"],
+              "yaw": sh["yaw"]}
+        asyncio.ensure_future(self.broadcast(m2, exclude=p.name))
+
+    async def ship_ride(self, p, m):
+        sid = str(m.get("sid", ""))[:24]
+        on = 1 if m.get("on") else 0
+        sh = self.ships.get(sid)
+        if not sh:
+            return
+        if on:
+            if sh.get("rider") and sh.get("rider") != p.name:
+                r = self.online(sh["rider"])
+                if r and r.ride_ship == sid:
+                    await self.sys_to(p, "Someone is already at the helm.")
+                    return
+            sh["rider"] = p.name
+            p.ride_ship = sid
+        else:
+            if sh.get("rider") == p.name:
+                sh["rider"] = None
+            if p.ride_ship == sid:
+                p.ride_ship = None
+        await self.broadcast({"t": "shipride", "sid": sid, "name": p.name, "on": on})
+
+    async def ship_del(self, p, m):
+        sid = str(m.get("sid", ""))[:24]
+        sh = self.ships.pop(sid, None)
+        if not sh:
+            return
+        self.ships_dirty = True
+        if sh.get("rider") == p.name:
+            p.ride_ship = None
+        await self.broadcast({"t": "shipdel", "sid": sid})
+
+    # ---------------------------------------------------------------- pvp --
+    async def pvp_hit(self, p, m):
+        """This client's bullet reached another player. Validate roughly, then
+        let the target's client apply the damage."""
+        if not self.store.world.get("pvp", True) or not p.allow("pvp", 6):
+            return
+        tgt = self.online(str(m.get("name", ""))[:16])
+        if not tgt or tgt is p:
+            return
+        try:
+            dmg = max(0, min(20, int(m.get("dmg", 0))))
+        except (TypeError, ValueError):
+            return
+        if dmg <= 0:
+            return
+        if not p.admin:
+            d = math.hypot(tgt.x - p.x, tgt.z - p.z)
+            if d > AC_PVP_RANGE:
+                p.strike(1, "shot a player %d blocks away" % int(d))
+                return
+        how = str(m.get("how", "gun"))[:24]
+        await tgt.ws.send_json({"t": "pvdmg", "dmg": dmg, "from": p.name, "how": how})
 
 
 def console_thread(server, loop):

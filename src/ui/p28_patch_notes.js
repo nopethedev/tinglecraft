@@ -3,7 +3,22 @@
    frozen core suite keep working, but players never see it. PATCH_LOG still feeds CHANGELOG.md (scripts/changelog.mjs)
    and the release tooling. Data-driven off GAME_VERSION so it can't drift from the shipped build. */
 const PATCH_LOG=[
- {v:GAME_VERSION,label:RELEASE_LABEL,title:'Sync and Steam',lines:[
+ {v:GAME_VERSION,label:RELEASE_LABEL,title:'Together, For Real',lines:[
+    'YOUR PROGRESS FOLLOWS YOU: rejoining a server restores your whole self — inventory, armour, position, dimension, hunger, xp, hotbar — straight from your account. Chests, furnaces and steam engines sync and save too, so nobody loses a base to a logout.',
+    'ADMIN RULES PERSIST: admins\' debug settings (game rules) are saved per account and handed back on rejoin. The debug menu stays admin-only in multiplayer.',
+    'THE BACKROOMS DEEPENS: twenty levels, lore-flavoured — the Lobby, Pipe Dreams, the Terror Hotel, Lights Out, Thalassophobia, the Cave System, the Suburbs, the Field of Wheat, the Endless City, the Matrix, Paradise, the Flooded Halls, the Carrier, the Attic, the Warehouse... fall through a hole in the floor to noclip deeper; rare Exit Doors climb back up (level 0\'s door still leaves for good, and it is rarer now). Level 21 is the Poolrooms, level 22 is The Exit: a small bright room whose door takes you home. Admins can jump anywhere: /backrooms 1-20 (or pool, exit).',
+    'THE NAN TRAP IS FIXED: leaving the Backrooms no longer drops you into "NaN NaN NaN". Wherever you noclipped in from is where you come out.',
+    'SHIPS: craft the Magical Ship Helm (planks, sticks, a diamond), build a boat out of ship blocks (25+ of planks, logs, glass, wool...), aim the helm at it and use it — the whole structure lifts out of the world as one drivable ship and the helm becomes the driver\'s seat. WASD to sail (fast on water), Shift to step off, sneak + right-click to break it back into blocks. Ships sync in multiplayer and persist in the world save.',
+    'GUNS: the M9, the AK47 (full-auto) and the Remington 870 (nine-pellet pump) join the armoury — craft them or buy them in the server shop. Their bullets can hit other players (server-validated; /pvp toggles it). Death messages tell everyone who went and how.',
+    'FEATURED SERVER: the multiplayer list now ships with a featured server (play.arcside.us.kg) pinned at the top. Add your own below it as always.',
+    'SMARTER RTP: /rtp now checks candidates against the real terrain and only lands you on dry land — no more fishing yourself out of the ocean.',
+    'ITEM TOOLTIPS: hover anything in any inventory, chest, furnace or shop slot to see what it is and what it does — damage, ammo, hunger, hardness, sell price.',
+    'VERY SIMPLE ANTICHEAT: the server watches for impossible movement, edits out of reach, kills from across the map, and inventories that grow without a witnessed source — duped items get you kicked (and eventually banned). Selling now pays only from your mining/loot/purchase ledger.',
+    'MOBS, MORE SYNCED: everyone sees the same mobs the moment they join, owner-side deaths settle through the server (no more zombie stood still for a minute), relayed mobs no longer double-drop their loot, and mob hits are reach-checked.',
+    'THE SNAIL IS OFF BY DEFAULT. He waits in the debug menu, patient as ever, for anyone who flips him back on.',
+    'PLUS: batched block edits (big builds and ships arrive as one message), keepalive and rate limits, an economy ledger, and the live mob list rides the welcome packet.',
+  ]},
+ {v:'7.1',label:'Release 1.2',title:'Sync and Steam',lines:[
     'MULTIPLAYER, IN SYNC: the server owns the clock — everyone shares one day/night. The item you hold shows in your hand for other players. Mobs are now shared too: the server spawns and relays them, one client simulates each mob, and they chase (and hit) every player nearby.',
     'ADMIN ONLY: the F3 debug screen and the Debug Menu are admin-only while playing multiplayer. Singleplayer is unchanged.',
     'SERVER GUIs: /shop opens a proper shop window (pick an item, pick a count, Buy). /sell opens a sell menu that pays for loot — or one Sell-everything button. /homes opens a homes menu: set home here, go, delete (5 homes, 10 for admins). All three also sit in the pause menu while playing multiplayer.',

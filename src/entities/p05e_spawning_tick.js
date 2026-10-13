@@ -101,6 +101,7 @@ function updateEntities(dt){
     else if(e.t==='cart')updateCart(e,dt);
     else if(e.t==='xp')updateXP(e,dt);
     else if(e.t==='boat')updateBoat(e,dt);
+    else if(e.t==='ship'){if(typeof updateShip==='function')updateShip(e,dt);}
     else if(e.t==='puff')updatePuff(e,dt);
     else if(e.t==='beam')updateBeam(e,dt);
     else if(e.t==='rock')updateRock(e,dt);

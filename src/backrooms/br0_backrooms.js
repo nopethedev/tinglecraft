@@ -45,6 +45,9 @@ function brEdgeZ(gx,gz){return h2(gx,gz,SEED^0xb2e2)<0.5;}   /* wall on the nort
 function brRoom(gx,gz){return h2(gx>>2,gz>>2,SEED^0xb2e4)<0.16;}  /* open halls: no internal walls in a 4x4-cell block */
 function brWallId(wx,y,wz){return B.BRWALL;}
 function genChunkBackrooms(cx,cz){
+  /* level 0 keeps the classic maze byte-for-byte; deeper levels live 400
+     chunks out along the x axis and dispatch to br1_levels.js */
+  if(cx>=400&&typeof brGenLevel==='function')return brGenLevel(cx,cz);
   const blocks=new Uint8Array(CH*WH*CH);
   const x0=cx*CH,z0=cz*CH;
   for(let lx=0;lx<CH;lx++)for(let lz=0;lz<CH;lz++){
@@ -66,10 +69,10 @@ function genChunkBackrooms(cx,cz){
       blocks[bidx(lx,y,lz)]=id;
     }
   }
-  /* exit doors, sparsely, at cell centres */
+  /* exit doors — rare, and rarer the more of them you have burned through */
   for(let gx=Math.floor((x0-1)/5);gx<=Math.floor((x0+CH+1)/5);gx++)
   for(let gz=Math.floor((z0-1)/5);gz<=Math.floor((z0+CH+1)/5);gz++){
-    if(h2(gx,gz,SEED^0xb2e3)>=0.045)continue;
+    if(h2(gx,gz,SEED^0xb2e3)>=0.012)continue;
     const dx2=gx*5+2,dz2=gz*5+2;
     const lx=dx2-x0,lz=dz2-z0;
     if(lx<0||lx>=CH||lz<0||lz>=CH)continue;
@@ -88,8 +91,26 @@ function brOpenSpot(){
 /* ----- travel: the Exit Door works from both sides ----- */
 const BR={over:null};
 function brUseDoor(){
-  if(DIM==='backrooms')travelOutBackrooms();
-  else travelBackrooms();
+  if(DIM!=='backrooms'){travelBackrooms();return;}
+  const lvl=brLevelAt();
+  if(lvl>=22){
+    /* The Exit: back to reality, for good this time */
+    if(typeof NET!=='undefined'&&NET.on){netSend({t:'cmd',txt:'/backrooms'});return;}
+    travelOutBackrooms();
+    showToast('YOU ESCAPED THE BACKROOMS. The sun never looked so good.');
+    playS('jackpot');
+    return;
+  }
+  if(lvl>0){
+    /* deeper levels: the door climbs back up one level */
+    brGo(lvl-1);
+    showToast('You climb through the door... one level up.');
+    return;
+  }
+  /* level 0: out of the Backrooms entirely (on a server the server knows
+     where you noclipped in) */
+  if(typeof NET!=='undefined'&&NET.on){netSend({t:'cmd',txt:'/backrooms'});return;}
+  travelOutBackrooms();
 }
 function travelBackrooms(){
   if(DIM==='backrooms')return;
@@ -101,22 +122,46 @@ function travelBackrooms(){
   playS('portal');
 }
 function travelOutBackrooms(){
-  const o=BR.over||findSpawn();
-  setDim('over',o.x,10,o.z);
+  /* findSpawn() returns an ARRAY, BR.over is an object — mixing them up used
+     to teleport people to (undefined, 10, undefined): the famous NaN trap */
+  let o=BR.over;
+  if(!o){const s=findSpawn();o={x:s[0],y:s[1],z:s[2]};}
+  setDim('over',o.x,isFinite(o.y)?o.y:40,o.z);
   forceChunksNear(P.x,P.z);
-  P.y=colInfo(Math.floor(P.x),Math.floor(P.z)).h+1.2;
+  if(P){
+    const h=colInfo(Math.floor(P.x),Math.floor(P.z)).h;
+    if(isFinite(h)&&Math.abs(P.y-(h+1.2))>3)P.y=h+1.2;
+    P.fallD=0;
+  }
   showToast('You found an exit. Reality resumes, sticky carpet smell gone.');
   playS('portal');
 }
-/* /backrooms from chat (singleplayer; on a server the command goes to server.py) */
-function brChatCmd(){
+/* /backrooms from chat (singleplayer; on a server the command goes to server.py).
+   Admins (cheats on) can jump straight to a level: /backrooms 7, /backrooms pool */
+function brChatCmd(parts){
   if(!playing||!P){return;}
+  const a=parts&&parts[0];
+  if(a!=null&&a!==''){
+    const named={pool:21,poolrooms:21,exit:22,lobby:0};
+    let lvl=null;
+    if(a.toLowerCase() in named)lvl=named[a.toLowerCase()];
+    else if(/^\d+$/.test(a))lvl=parseInt(a,10);
+    if(lvl!=null){
+      if(!GR.cheats){sysMsg('Only admins can jump to a specific level.');return;}
+      if(lvl<0||lvl>22){sysMsg('Levels are 0-22 (21 poolrooms, 22 the exit).');return;}
+      if(DIM!=='backrooms')BR.over={x:P.x,y:P.y,z:P.z};
+      brGo(lvl);
+      return;
+    }
+  }
   if(DIM==='backrooms')travelOutBackrooms();else travelBackrooms();
 }
 /* ----- per-frame: the lights flicker, sometimes the hum stutters ----- */
 const BRFL={t:1,dip:0,ph:0};
 function processBackrooms(dt){
   if(DIM!=='backrooms'||!P||P.dead)return;
+  /* fall through a noclip pit (or dig to the bedrock) and you go deeper */
+  if(P.y<1.4&&typeof brDescend==='function'){brDescend();return;}
   BRFL.t-=dt;
   if(BRFL.t<=0){
     BRFL.t=2.5+Math.random()*4.5;

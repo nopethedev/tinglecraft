@@ -92,7 +92,11 @@ function netChatSubmit(t){
   else netSend({t:'chat',txt:t});
 }
 /* ---- block edit hook (called from setBlock, p03c) ---- */
-function netSendSet(ck,lk,id){netSend({t:'set',ck:ck,lk:lk,id:id});}
+function netSendSet(ck,lk,id,old){
+  /* batched: ships and big digs leave as one `sets` message (net3_sync) */
+  if(typeof netQueueSet==='function'){netQueueSet(ck,lk,id,old);return;}
+  netSend({t:'set',ck:ck,lk:lk,id:id,old:old!=null?old:-1});
+}
 /* ---- incoming edits: through the setBlock funnel, or straight into
         chunkEdits when the chunk is not loaded (createChunk replays them) ---- */
 function netApplySet(ck,lk,id){
@@ -125,14 +129,23 @@ function netStartWorld(m){
   NET.motd=m.motd||'';
   NET.mobsOn=m.mobs!==0;
   try{window.storage.set('mp:acc',NET.name);}catch(e){}
+  const st=(m.st&&typeof m.st==='object')?m.st:null;
   const sp=m.spawn||findSpawn();
-  if(!m.spawn)netSend({t:'spawnset',x:+sp[0].toFixed?+sp[0].toFixed(1):sp[0],y:sp[1],z:sp[2]});
-  applySave({f:1,seed:m.seed|0,mode:'s',time:+m.time||0.3,dim:'over',snl:0,
-    nukes:[],edits:m.edits||{},be:{},ents:[],gr:{},
-    player:{x:sp[0],y:sp[1],z:sp[2],yaw:0,pitch:0,hp:20,hunger:20,sel:0,
-      spawn:[sp[0],sp[1],sp[2]],inv:[],stox:{bal:0,sh:{},cb:{}},xp:0,armor:[0,0,0,0],
+  if(!m.spawn&&!st)netSend({t:'spawnset',x:+sp[0].toFixed?+sp[0].toFixed(1):sp[0],y:sp[1],z:sp[2]});
+  const px=st?st.x:sp[0],py=st?st.y:sp[1],pz=st?st.z:sp[2];
+  applySave({f:1,seed:m.seed|0,mode:'s',time:+m.time||0.3,
+    dim:(st&&st.dim)||'over',snl:0,
+    nukes:[],edits:m.edits||{},be:m.be||{},ents:[],gr:{},
+    player:{x:px,y:py,z:pz,yaw:st?st.yaw:0,pitch:st?st.pitch:0,
+      hp:st?st.hp:20,hunger:st?st.hun:20,sel:st?st.sel:0,
+      spawn:(st&&st.spawn&&st.spawn.length===3)?st.spawn:[sp[0],sp[1],sp[2]],
+      inv:st?st.inv.map(a=>a?{id:a[0],count:a[1],...(a[2]!=null?{dur:a[2]}:{})}:null):[],
+      stox:{bal:0,sh:{},cb:{}},xp:st?st.xp:0,
+      armor:st?st.armor.map(a=>a?{id:a[0],...(a[1]!=null?{dur:a[1]}:{})}:null):[0,0,0,0],
       db:0,own:[],cos:{},bp:0,bpl:0,pow:{u:{},a:{}}}});
   P.db=Math.max(0,m.balance|0);
+  if(st&&st.spawn&&st.spawn.length===3)P.spawn=[st.spawn[0],st.spawn[1],st.spawn[2]];
+  if(m.set)netApplySettings(m.set);
   GR.dayCycle=true;                       /* the server owns the clock: keep it running */
   WORLD.name='MP '+netAddrStr({host:NET.host,port:NET.port,path:NET.path});
   enterGame();
@@ -141,15 +154,33 @@ function netStartWorld(m){
   showToast('Joined as '+NET.name+(NET.admin?' (admin)':''));
   sysMsg('[Server] '+(m.motd||'Welcome.'));
   if(m.players&&m.players.length)sysMsg('[Server] Online: '+m.players.join(', '));
+  /* the world you rejoin is alive already: ships, mobs, chests */
+  if(Array.isArray(m.ships)&&typeof shipFromNet==='function')
+    for(const s of m.ships)shipFromNet(s[0],s[1],+s[2],+s[3],+s[4],+s[5]||0,null);
+  if(Array.isArray(m.mobs_list))
+    for(const mo of m.mobs_list)
+      netSpawnMob(mo[0],mo[1],+mo[2],+mo[3],+mo[4],mo[8]===NET.name,mo[6],mo[5],mo[7]);
+  netStateSend();
 }
 function netApplyTeleport(m){
   if(!P)return;
+  let x=+m.x,y=+m.y,z=+m.z;
+  if(!isFinite(x))x=0.5;                 /* a NaN teleport must never stick */
+  if(!isFinite(y))y=40;
+  if(!isFinite(z))z=0.5;
   const d=(m.dim==='backrooms')?'backrooms':'over';
-  setDim(d,+m.x||0.5,+m.y||40,+m.z||0.5);
+  const farJump=(d===DIM)&&(Math.hypot(x-P.x,z-P.z)>600);
+  setDim(d,x,y,z);
+  if(farJump){
+    /* a Backrooms level jump inside the same dimension: drop the old
+       region's chunks right away instead of streaming them out slowly */
+    for(const [k,ch] of chunks)disposeChunkMeshes(ch);
+    chunks.clear();
+  }
   forceChunksNear(P.x,P.z);
   if(d==='over'&&DIM==='over'){
     const h=colInfo(Math.floor(P.x),Math.floor(P.z)).h;
-    if(Math.abs(P.y-(h+1.2))>3)P.y=h+1.2;
+    if(isFinite(h)&&Math.abs(P.y-(h+1.2))>3)P.y=h+1.2;
   }
   P.fallD=0;
 }
@@ -174,6 +205,7 @@ function netTick(dt){
       held:held|0});
   }
   if(now-NET.lastPing>20000){NET.lastPing=now;netSend({t:'ping'});}
+  if(typeof n3Tick==='function')n3Tick(dt);
   /* owned relayed mobs: stream their simulation to the server (~10 Hz) */
   if(now-NET.lastMobSend>100){
     NET.lastMobSend=now;
@@ -358,6 +390,20 @@ function netMsg(m){
     case 'homes':NET.homes=m.homes||{};if(homesOpen)renderHomes();break;
     case 'opensell':if(NET.on)openSell();break;
     case 'mach':if(typeof netMach==='function')netMach(m);break;
+    case 'be':if(typeof netBeApply==='function')netBeApply(m.k,m.d);break;
+    case 'shipadd':if(typeof shipFromNet==='function')
+      shipFromNet(m.sid,m.d,+m.x,+m.y,+m.z,+m.yaw||0,m.rider);break;
+    case 'shippos':{
+      const e=(typeof NSH!=='undefined')&&NSH.list.get(m.sid);
+      if(e&&!e.dead){e.ntx=+m.x;e.nty=+m.y;e.ntz=+m.z;e.ntyaw=+m.yaw||0;}
+      break;}
+    case 'shipdel':if(typeof shipNetRemove==='function')shipNetRemove(m.sid);break;
+    case 'shipride':
+      if(m.on&&m.name&&m.name!==NET.name)sysMsg(m.name+' took the helm');
+      break;
+    case 'pvdmg':{
+      if(P&&!P.dead){LASTDMG={by:m.from||'player',how:'shot',t:AG_T};damagePlayer(m.dmg|0,0,0);}
+      break;}
     case 'mobprobe':netMobProbe(m);break;
     case 'mobadd':netSpawnMob(m.mid,m.type,+m.x,+m.y,+m.z,m.own===NET.name,undefined,undefined,m.dim);break;
     case 'mobown':netSpawnMob(m.mid,m.type,+m.x,+m.y,+m.z,true,m.hp,m.yaw,m.dim);break;
@@ -375,9 +421,19 @@ function netMsg(m){
       if(P&&!P.dead){LASTDMG={by:m.type||'mob',how:'mob',t:AG_T};damagePlayer(m.dmg|0,0,0);}
       break;}
     case 'rtp_req':{
-      const tx=m.tx|0,tz=m.tz|0;
-      let y=40;try{y=colInfo(tx,tz).h+2;}catch(e){}
-      netSend({t:'rtp_res',x:tx+0.5,y:y,z:tz+0.5,dim:'over'});
+      /* the server offers candidates; colInfo is pure terrain math, so we
+         can judge every one without loading a single chunk. Pick the first
+         honest dry spot: land height, not ocean biome, room to stand. */
+      const cs=Array.isArray(m.cs)?m.cs:[];
+      let best=-1,bx=0.5,by=40,bz=0.5;
+      for(let i=0;i<cs.length;i++){
+        const tx=cs[i][0]|0,tz=cs[i][1]|0;
+        try{
+          const ci=colInfo(tx,tz);
+          if(ci&&ci.h>=SEA+1&&ci.b!==0&&ci.h<WH-10){best=i;bx=tx+0.5;by=ci.h+2;bz=tz+0.5;break;}
+        }catch(e){}
+      }
+      netSend({t:'rtp_res',i:best,x:bx,y:by,z:bz});
       break;}
     case 'pong':break;
   }

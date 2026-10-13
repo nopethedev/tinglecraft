@@ -52,13 +52,24 @@ function updateSky(dt){
         ambL.color&&ambL.color.setRGB&&ambL.color.setRGB(1,0.74,0.6);
         sunL.intensity=0.1;}
     }else if(DIM==='backrooms'){
-      scene.background.setRGB(0.40,0.35,0.15);
-      scene.fog.color.copy(scene.background);
-      scene.fog.near=RD*CH*0.16;scene.fog.far=RD*CH*0.55;
-      if(fullbright&&GR.fbOK){ambL.intensity=1.05;sunL.intensity=0.1;}
-      else{ambL.intensity=0.8;
-        ambL.color&&ambL.color.setRGB&&ambL.color.setRGB(1,0.96,0.8);
-        sunL.intensity=0.08;}
+      const sm=(typeof brSkyMod==='function')?brSkyMod():null;
+      if(sm){
+        scene.background.setRGB(sm[0],sm[1],sm[2]);
+        scene.fog.color.copy(scene.background);
+        scene.fog.near=Math.max(4,RD*CH*sm[4]);scene.fog.far=Math.max(12,RD*CH*sm[5]);
+        if(fullbright&&GR.fbOK){ambL.intensity=1.05;sunL.intensity=0.1;}
+        else{ambL.intensity=sm[3];
+          ambL.color&&ambL.color.setRGB&&ambL.color.setRGB(sm[6],sm[7],sm[8]);
+          sunL.intensity=0.08;}
+      }else{
+        scene.background.setRGB(0.40,0.35,0.15);
+        scene.fog.color.copy(scene.background);
+        scene.fog.near=RD*CH*0.16;scene.fog.far=RD*CH*0.55;
+        if(fullbright&&GR.fbOK){ambL.intensity=1.05;sunL.intensity=0.1;}
+        else{ambL.intensity=0.8;
+          ambL.color&&ambL.color.setRGB&&ambL.color.setRGB(1,0.96,0.8);
+          sunL.intensity=0.08;}
+      }
     }else{
       scene.background.setRGB(0.6,0.78,0.96);
       scene.fog.color.copy(scene.background);

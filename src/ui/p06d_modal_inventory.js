@@ -9,6 +9,54 @@ function slotDiv(cls){
   d.appendChild(c);
   return d;
 }
+/* ----- Minecraft-style hover tooltips (name + what the thing does) ----- */
+function itemTipLines(id){
+  const d=DEFS[id];
+  if(!d)return [];
+  const L=[];
+  if(d.lore)L.push(d.lore);
+  if(d.gun){
+    L.push('Damage '+d.gun.dmg+(d.gun.pel>1?' x'+d.gun.pel+' pellets':''));
+    L.push('Ammo: '+DEFS[d.gun.ammo===1?IT.SHELL:IT.BULLET].name);
+    if(d.gun.auto)L.push('Hold to fire full-auto');
+    L.push('Durability '+Math.round(d.dur||0));
+  }
+  if(d.tool)L.push(d.tool.type+' — mines '+d.tool.mult+'x faster, '+d.tool.dmg+' dmg'+(d.tool.dur?', '+d.tool.dur+' uses':''));
+  if(d.bow)L.push('Bow — hold to draw, '+Math.round(d.dur||0)+' uses');
+  if(d.food!=null)L.push('Restores '+d.food+' hunger');
+  if(d.armorType!==undefined)L.push('Armor: '+['head','chest','legs','feet'][d.armorType]);
+  if(d.door)L.push('A door. Right-click to open.');
+  if(d.grenade)L.push('Throwable. Mind the blast radius.');
+  if(d.fuel!=null)L.push('Fuel');
+  if(!d.item&&id!==B.AIR){
+    if(d.hard>=0)L.push((d.opq===false?'See-through block':'Block')+' — '+(d.hard===0?'instabreak':'hardness '+d.hard));
+    if(d.toolClass)L.push('Mines fastest with a '+d.toolClass);
+    if(d.light)L.push('Gives off light');
+    if(d.interact&&!d.door)L.push('Right-click to use');
+    if(d.slippery)L.push('Slippery!');
+    if(d.hurts)L.push('It hurts to touch');
+  }
+  if(NET.on&&NET.sell&&NET.sell[id])L.push('Sell: '+NET.sell[id]+' DB each (server)');
+  return L;
+}
+let TIP=null;
+function invTipShow(st,x,y){
+  if(!st||!DEFS[st.id]){invTipHide();return;}
+  if(!TIP){
+    TIP=document.createElement('div');TIP.id='invtip';
+    document.body.appendChild(TIP);
+  }
+  const d=DEFS[st.id];
+  let h='<div class="itip-n">'+(d.name||('?'+st.id))+(st.count>1?' x'+st.count:'')+'</div>';
+  for(const ln of itemTipLines(st.id))h+='<div class="itip-l">'+ln+'</div>';
+  if(st.ench){for(const k in st.ench)h+='<div class="itip-e">'+enchName(k,st.ench[k])+'</div>';}
+  TIP.innerHTML=h;
+  TIP.style.display='block';
+  const w=TIP.offsetWidth||180,hh=TIP.offsetHeight||60;
+  TIP.style.left=clamp(x+14,4,window.innerWidth-w-6)+'px';
+  TIP.style.top=clamp(y-hh-10,4,window.innerHeight-hh-6)+'px';
+}
+function invTipHide(){if(TIP)TIP.style.display='none';}
 function mkSlot(parent,getf,setf,kind){
   const d=slotDiv(kind==='result'?'rslot':'');
   const s={get:getf,set:setf,kind:kind||'n',el:d,cv:d.firstChild};
@@ -18,6 +66,11 @@ function mkSlot(parent,getf,setf,kind){
     redrawModal();
   });
   d.addEventListener('contextmenu',ev=>ev.preventDefault());
+  /* hover: what is this thing? (Minecraft-style tooltip) */
+  d.addEventListener('pointerenter',ev=>{if(kind!=='palette')invTipShow(s.get(),ev.clientX,ev.clientY);});
+  d.addEventListener('pointermove',ev=>{if(TIP&&TIP.style.display==='block')invTipShow(s.get(),ev.clientX,ev.clientY);
+    else if(kind!=='palette')invTipShow(s.get(),ev.clientX,ev.clientY);});
+  d.addEventListener('pointerleave',()=>invTipHide());
   parent.appendChild(d);
   MODAL.slots.push(s);
   return s;
@@ -294,6 +347,8 @@ function openModal(kind,bek){
 function closeModal(skipLock){
   if(!MODAL.kind)return;
   if(AG_ACTIVE&&MODAL.kind==='chest')agChestClose();
+  if(typeof invTipHide==='function')invTipHide();
+  if(MODAL.be&&MODAL.bek&&typeof netBePush==='function')netBePush(MODAL.bek);   /* chest/furnace edits leave for the server */
   if(MODAL.grid){
     for(const st of MODAL.grid)if(st){
       if(invAddTo(P.inv,st)>0)spawnDrop(P.x,P.y+1,P.z,st,0,2,0);
@@ -412,6 +467,11 @@ function resumeGame(){
   tryLock();
 }
 function showDeath(){
+  /* everyone on the server learns how you went */
+  if(typeof NET!=='undefined'&&NET.on){
+    const lm=typeof LASTDMG!=='undefined'?LASTDMG:null;
+    netSend({t:'idied',by:lm&&lm.by?String(lm.by):'',how:lm&&lm.how?String(lm.how):''});
+  }
   document.exitPointerLock&&document.exitPointerLock();
   $('death').style.display='flex';
 }

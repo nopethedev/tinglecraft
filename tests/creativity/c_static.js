@@ -40,7 +40,7 @@ boot.run(async()=>{
 
   /* ---- tiles (plan 2.3) ---- */
   const T=V.CR_TILES;
-  ok('13 tiles, registered at boot right after the last PART tile (slot '+I.tile0+' = after the Backrooms tiles 285-289 and the v7.1 machine tiles 290-293)',T.length===13&&I.tile0===294&&
+  ok('13 tiles, registered at boot right after the last PART tile (slot '+I.tile0+' = after the Backrooms tiles 285-289, the v7.1 machine tiles 290-293 and the four v7.2 ship/gun icon tiles 294-297)',T.length===13&&I.tile0===298&&
     T.every((n,i)=>C.Tl[n]===I.tile0+i)&&C.tn===I.tile0+T.length&&C.tn<=C.ATLAS*C.ATLAS);
   const badT=[];for(const i of [213,214,215,216]){const t=D[i].tiles,ns=typeof t==='string'?[t]:[t.top,t.side,t.bot];for(const n of ns)if(C.Tl[n]===undefined||!/^cr_/.test(n))badT.push(i+':'+n);
     if(!D[i]._t)badT.push(i+':_t');}
@@ -49,7 +49,7 @@ boot.run(async()=>{
 
   /* ---- recipes (plan 2.4) ---- */
   const R=V.RECIPES,N=V.CR_RECIPE_N;
-  ok('3 creativity recipes appended to RECIPES (99 overworld + 3, the Tingle Craft Exit Door, then the two v7.1 machines last)',N===3&&R.length===104&&R.slice(98,101).map(r=>r.o).join()==='213,214,215'&&R[101].o===219&&R.slice(102).map(r=>r.o).join()==='248,249');
+  ok('3 creativity recipes appended to RECIPES (99 overworld + 3, the Tingle Craft Exit Door, the two v7.1 machines, then the four v7.2 ship/gun recipes last)',N===3&&R.length===108&&R.slice(98,101).map(r=>r.o).join()==='213,214,215'&&R[101].o===219&&R.slice(102,104).map(r=>r.o).join()==='248,249'&&R.slice(104).map(r=>r.o).join()==='366,367,368,369');
   const firstOf=v=>typeof v==='string'?V.GROUPS[v][0]:v;
   const gridOf=r=>{const g=Array(9).fill(null);if(r.p){r.p.forEach((row,y)=>[...row].forEach((ch,x)=>{if(ch!==' ')g[y*3+x]={id:firstOf(r.k[ch]),count:1};}));}
     else r.s.forEach((v,i)=>{g[i]={id:firstOf(v),count:1};});return g;};

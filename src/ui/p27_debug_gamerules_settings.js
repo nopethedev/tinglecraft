@@ -2,7 +2,7 @@
 /* PART 27 — DEBUG MENU, GAMERULES & SETTINGS MEMORY  (2.3.1)            */
 /* ===================================================================== */
 function GR_DEF(){return {keepInv:false,god:false,mobGrief:true,mobSpawn:true,
-  dayCycle:true,fireTick:true,fallDmg:true,snail:true,jsc:0,instaKill:false,freezeMobs:false,ghosts:true,bots:false,botPvP:true,botGrief:true,botPurg:true,fbOK:true,store:true,powers:true,cheats:true};}
+  dayCycle:true,fireTick:true,fallDmg:true,snail:false,jsc:0,instaKill:false,freezeMobs:false,ghosts:true,bots:false,botPvP:true,botGrief:true,botPurg:true,fbOK:true,store:true,powers:true,cheats:true};}
 const GR=GR_DEF();
 let dbgmOpen=false;
 const GR_LABELS=[
@@ -13,7 +13,7 @@ const GR_LABELS=[
   ['dayCycle','Daylight Cycle',            'Off pauses the sun where it stands.'],
   ['fireTick','Fire Tick',                 'Off freezes fire: no spreading, no burning out.'],
   ['fallDmg', 'Fall Damage',               'Gravity\u2019s opinion of your ankles.'],
-  ['snail',   'The Eternal Snail',         'The slow pursuer. Off makes him vanish and stay gone.'],
+  ['snail',   'The Eternal Snail',         'The slow pursuer. Off by default now — flip it on if you miss the dread.'],
   ['instaKill','Instant Kill',              'Any hit you land kills a mob outright \u2014 guns, blades, tools, all of it.'],
   ['freezeMobs','Freeze All Mobs',          'Every mob stops where it stands \u2014 no moving, no attacking \u2014 until you turn this off.'],
   ['ghosts',  'Guilt Ghosts',              'Slain mobs sometimes return to guilt-trip you. Off keeps them away for good.'],
@@ -40,6 +40,8 @@ function grToggle(k){
   if(k==='ghosts'&&!GR.ghosts)for(const e of entities)if(e.t==='ghost'&&!e.dead)removeEnt(e);
   if(k==='bots'){if(GR.bots)agJoinAll(false);else agLeaveAll();}
   if(k==='fbOK'||k==='store'||k==='powers'||k==='cheats')grApplyUI();
+  /* admins' game rules follow them across sessions on a server */
+  if(typeof NET!=='undefined'&&NET.on&&NET.admin&&typeof netSendSettings==='function')netSendSettings();
   playS('click');
   renderDbgm();
   return GR[k];

@@ -294,6 +294,23 @@ function doUse(dt){
       rEdge=false;playS('place');return;
     }
   }
+  /* ships: right-click the helm to take it, sneak + right-click to break
+     it back into blocks (the helm pops off) */
+  if(rEdge&&!P.ride&&typeof pickShip==='function'){
+    const sh=pickShip(e[0],e[1],e[2],l[0],l[1],l[2],4.4);
+    if(sh&&(!hit||sh.t<hit.t+1.2)){
+      rEdge=false;
+      if(P.sneak)shipDisassemble(sh.e);
+      else{
+        P.ride=sh.e;P.ride.spd=P.ride.spd||0;
+        P.yaw=sh.e.yaw;P.pitch*=0.3;
+        if(typeof NET!=='undefined'&&NET.on&&sh.e.sid)netSend({t:'shipride',sid:sh.e.sid,on:1});
+        showToast('You take the helm. WASD to sail, Shift to step off.');
+        playS('place');
+      }
+      return;
+    }
+  }
   if(rEdge&&hit&&P.sneak&&PREG.sneakUse[hit.id]){rEdge=false;PREG.sneakUse[hit.id](hit);return;}
   /* interactable blocks (unless sneaking) */
   if(rEdge&&hit&&!P.sneak){

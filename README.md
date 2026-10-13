@@ -22,7 +22,7 @@ Download or build the game HTML and double-click it — the whole game is one fi
 npm run build        # Node.js 20+ (22 recommended), no npm packages needed
 ```
 
-That writes `dist/dinglecraft_v7.1.html` — every texture is inside it, three.js is bundled, no internet needed.
+That writes `dist/dinglecraft_v7.2.html` — every texture is inside it, three.js is bundled, no internet needed.
 
 ### Multiplayer
 
@@ -41,8 +41,8 @@ That writes `dist/dinglecraft_v7.1.html` — every texture is inside it, three.j
    someone an admin (`--admin`, the console `op` command, or in-game `/op` for existing admins).
 
 **Server commands:** `/help` `/list` `/money` `/pay <player> <amount>` `/rtp` `/tpa <player>` `/tpaccept`
-`/tpdeny` `/msg` `/spawn` `/backrooms` `/shop` `/sell` `/home` `/sethome` `/delhome` `/homes` — plus `/kick`
-`/ban` `/op` `/deop` `/say` `/give` `/time` `/mobson` `/mobsoff` for admins. **Server console:** `help` `op`
+`/tpdeny` `/msg` `/spawn` `/backrooms [0-22]` `/shop` `/sell` `/home` `/sethome` `/delhome` `/homes` — plus `/kick`
+`/ban` `/op` `/deop` `/say` `/give` `/time` `/mobson` `/mobsoff` `/pvp` `/backrooms <level>` for admins. **Server console:** `help` `op`
 `deop` `kick` `ban` `unban` `passwd` `money` `time` `mobson` `mobsoff` `say` `motd` `list` `save` `stop`.
 
 The world (seed + every block edit), the balances, the homes and the bans persist in `server_data/` (`world.json`,
@@ -51,12 +51,33 @@ The world (seed + every block edit), the balances, the homes and the bans persis
 `/give` or the **Server Admin** panel (set balances, kick/ban/op, bring players, set the time, spawn, MOTD and mob
 spawning).
 
-**Everything stays in sync:** the server owns the clock (one shared day/night), it relays each player's held item,
-and it brokers the mobs — they spawn, roam, chase and hit every nearby player the same way for everyone.
+**Everything stays in sync — and saves:** the server owns the clock (one shared day/night), it relays each
+player's held item, and it brokers the mobs (they spawn, roam, chase and hit every nearby player the same way
+for everyone, and they are all there the moment you join). Rejoining restores your whole self from your
+account: inventory, armour, position, dimension, hunger, xp, hotbar. Chests, furnaces and steam engines sync
+and persist. Admins' game rules follow them between sessions. `/rtp` only lands you on dry land. A very simple
+anticheat watches for impossible movement, out-of-reach edits, cross-map kills and duped items — cheats get
+kicked, repeat offenders banned. Ships (see below) sync and persist too. The multiplayer list ships with a
+featured server (`play.arcside.us.kg`) pinned at the top.
 
 **Behind a reverse proxy** (nginx, Caddy): the handshake accepts any path, so `wss://your.host/tc` just works —
 ready-made configs are in [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md). Plain HTTP health checks get a friendly
 answer.
+
+### Ships
+
+Build a boat out of ship blocks (planks, logs, glass, wool, chests, furnaces, doors — 25+ of them), craft the
+**Magical Ship Helm** (planks + sticks + a diamond), aim it at your ship and use it: the whole structure lifts
+out of the world as one drivable ship and the helm becomes the **driver's seat**. WASD to sail (fast on water,
+slow beached), Shift to step off, sneak + right-click to break it back into blocks (the helm pops off). In
+multiplayer everyone sees your ship move, and ships persist in the world save.
+
+### The armoury
+
+Alongside the classic iron/gold/diamond guns: the **M9**, the full-auto **AK47** and the **Remington 870**
+(nine-pellet pump) — craft them or buy them in the server shop. In multiplayer their bullets can hit other
+players through a server-validated relay (`/pvp` toggles it), and deaths are announced with the culprit's name.
+Hover any item in any inventory to see what it does.
 
 ### Machines (a Create-flavoured pack)
 
@@ -75,9 +96,14 @@ menu, login and chat all work by touch.
 
 ## The Backrooms
 
-A new dimension of mono-yellow rooms, damp carpet and the hum of fluorescent lights. Craft an **Exit Door**
-(planks + glowstone + diamond, makes 2), place it and click it — or type `/backrooms` in chat (singleplayer or
-on a server). Click the door again to leave. Do not noclip on purpose.
+A dimension of mono-yellow rooms, damp carpet and the hum of fluorescent lights — and now a whole descent.
+**Twenty-two levels**: fall through a hole in the floor to noclip deeper (the Lobby, Pipe Dreams, the Terror
+Hotel, Lights Out, Thalassophobia, the Cave System, the Suburbs, the Field of Wheat, the Endless City, the
+Matrix, Paradise, the Flooded Halls, the Carrier, the Attic, the Warehouse...), rare **Exit Doors** climb back
+up, and level 0's door still leaves for good (rarer now, as it should be). **Level 21 is the Poolrooms**;
+**level 22 is The Exit** — a small bright room whose door takes you home. Admins jump anywhere:
+`/backrooms 1-20` (also `pool`, `exit`). Leaving no longer NaNs you into the void: where you noclipped in is
+where you come out. Do not noclip on purpose.
 
 ## Controls
 

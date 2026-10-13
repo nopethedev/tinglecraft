@@ -21,7 +21,7 @@ boot.run(async()=>{
   ok('every recipe has a station tag (hand, can, lab, trans) and the counts are 10/19/11/1',
     ['hand','can','lab','trans'].map(s=>PR.filter(r=>r.st===s).length).join()==='10,19,11,1');
   ok('no overworld id in PRECIPES (every output and ingredient is pg:1)',PR.every(r=>[r.o,...ingIds(r)].every(id=>D[id].pg===1)));
-  ok('RECIPES still holds 101 recipes (99 + the two v7.1 machines) (+ '+(V.CR_RECIPE_N|0)+' v6.2 creativity recipes) and no purgatory id',V.RECIPES.length===101+(V.CR_RECIPE_N|0)&&V.RECIPES.every(r=>![r.o,...(r.s||[]),...Object.values(r.k||{})].some(x=>typeof x==='number'&&D[x]&&D[x].pg)));
+  ok('RECIPES still holds 105 recipes (99 + the two v7.1 machines + the four v7.2 ship/gun recipes) (+ '+(V.CR_RECIPE_N|0)+' v6.2 creativity recipes) and no purgatory id',V.RECIPES.length===105+(V.CR_RECIPE_N|0)&&V.RECIPES.every(r=>![r.o,...(r.s||[]),...Object.values(r.k||{})].some(x=>typeof x==='number'&&D[x]&&D[x].pg)));
   ok('patterns are trimmed to their bounding box and use spaces for empty',PR.filter(r=>r.p).every(r=>{const w=r.p[0].length;
     return r.p.every(row=>row.length===w&&!/\./.test(row))&&r.p.some(row=>row[0]!==' ')&&r.p.some(row=>row[w-1]!==' ')&&r.p[0].trim()&&r.p[r.p.length-1].trim();}));
   /* calcCraft makes each purgatory recipe from its own grid, plain and placed in every legal offset */
@@ -57,7 +57,7 @@ boot.run(async()=>{
   ok('every purgatory tile sits at its pinned slot 222+i'+(wrong.length?' ('+wrong.slice(0,4).join(',')+')':''),wrong.length===0);
   /* v6.2 (lead, CREATIVITY_PLAN.md 3.5): PART 56 registers its tiles at boot, after every top-level tile() (so 222-284 never move) */
   const crT=V.CR_TILES?V.CR_TILES.length:0;
-  ok('_tn is 294 after PART 55, the 5 Backrooms tiles and the 4 v7.1 machine tiles (+'+crT+' v6.2 tiles registered at boot) and fits the 1024-slot atlas',C.tn===294+crT&&C.tn<=C.ATLAS*C.ATLAS);
+  ok('_tn is 298 after PART 55, the 5 Backrooms tiles, the 4 v7.1 machine tiles and the 4 v7.2 ship/gun icon tiles (+'+crT+' v6.2 tiles registered at boot) and fits the 1024-slot atlas',C.tn===298+crT&&C.tn<=C.ATLAS*C.ATLAS);
   ok('no pg_stub tile survives with the real P2',Object.keys(C.Tl).every(n=>!/^pg_stub/.test(n)));
   const used=new Set();for(const id in D){const d=D[id];if(!d.pg||d.item||!d.tiles)continue;const t=d.tiles;for(const n of typeof t==='string'?[t]:[t.top,t.side,t.bot])used.add(n);}
   ok('every purgatory tile is used by a purgatory block ('+used.size+')',TILES.every(n=>used.has(n)));

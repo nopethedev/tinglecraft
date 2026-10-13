@@ -53,6 +53,9 @@ function snapshot(name){
       ...(e.st.mob?{mob:e.st.mob}:{}),...(e.st.ench?{ench:e.st.ench}:{})});
     else if(e.t==='car'||e.t==='skate'||e.t==='cart'||e.t==='boat'||e.t==='plane')ents.push({t:e.t,x:+e.x.toFixed(2),y:+e.y.toFixed(2),z:+e.z.toFixed(2),
       hp:e.hp,yaw:+e.yaw.toFixed(2)});
+    else if(e.t==='ship'&&e.vox&&typeof shipPack==='function')
+      ents.push({t:'ship',x:+e.x.toFixed(2),y:+e.y.toFixed(2),z:+e.z.toFixed(2),
+        yaw:+e.yaw.toFixed(2),vx:shipPack(e.vox)});
   }
   return {f:SAVE_FORMAT,v:GAME_VERSION,name,seed:SEED,mode:P.mode,
     time:+(timeOfDay%1).toFixed(4),
@@ -231,6 +234,10 @@ function applySave(d){
       spawnBoat(e.x,e.y,e.z,e.yaw||0);
       const c=entities[entities.length-1];
       if(e.hp!=null)c.hp=e.hp;
+    }
+    else if(e.t==='ship'&&e.vx&&typeof shipUnpack==='function'){
+      const v=shipUnpack(e.vx);
+      if(v)spawnShipEnt(v,Math.round(e.x-0.5),Math.round(e.y),Math.round(e.z-0.5),{yaw:e.yaw||0});
     }
     else if(e.t==='plane'){
       spawnPlane(e.x,e.y,e.z,e.yaw||0);

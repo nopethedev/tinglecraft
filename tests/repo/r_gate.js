@@ -64,8 +64,9 @@ ok('the retired legacy checks total 156 (63 splice-era checks + 93 og_trace pari
 
 // ---- the frozen core quartet
 const PINS = { 'stubs.js': ['e2be2e4ef146026285c55641a1e007c6', 10664], 'test.js': ['85d8df887b9429546693add63f898876', 12036],
-  'smoke.js': ['9ef6d1bd0d73ec7fd42ec7d14c5e27b3', 62050], 'botsmoke.js': ['3f613a13692b6ddb1c8448f217c8f25b', 72130] };
-/* v6.8 (Release 1.0 final cut): smoke.js re-pinned after the lead removed its one Watcher check (5 lines) with the Watcher
+  'smoke.js': ['741d5c31e03238d2ec9066f3ba803ee7', 62066], 'botsmoke.js': ['3f613a13692b6ddb1c8448f217c8f25b', 72130] };
+/* v7.2 (Release 1.3): smoke.js re-pinned after the Eternal Snail's rule changed to default-off (the user's call).
+   v6.8 (Release 1.0 final cut): smoke.js re-pinned after the lead removed its one Watcher check (5 lines) with the Watcher
    (was 81986500187de6aab529a3afea713bdb, 62246 B; the legacy count 221 in tests/gate.json is the v6.3 log and stays) */
 for (const [f, [m, b]] of Object.entries(PINS)) {
   const buf = exists('tests/core/' + f) ? fs.readFileSync(path.join(REPO, 'tests/core', f)) : Buffer.alloc(0);

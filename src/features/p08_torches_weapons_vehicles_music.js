@@ -199,7 +199,7 @@ function spawnBullet(x,y,z,vx,vy,vz,dmg,grav){
   const m=new THREE.Mesh(bltGeo,bltMat);
   m.position.set(x,y,z);
   scene.add(m);
-  entities.push({t:'blt',x,y,z,vx,vy,vz,dmg,grav,age:0,mesh:m});
+  entities.push({t:'blt',x,y,z,vx,vy,vz,dmg,grav,age:0,mine:true,mesh:m});
 }
 function updateBullet(e,dt){
   e.age+=dt;
@@ -216,6 +216,19 @@ function updateBullet(e,dt){
         else{HIT_BY='Dan';HIT_HOW='arrow';hurtMob(m,e.dmg,e.vx,e.vz);HIT_BY=null;HIT_HOW=null;}
         burstParticles(nx,ny,nz,B.BRICK,4,0.3);
         removeEnt(e);return;
+      }
+    }
+    /* multiplayer: bullets reach other players through the server's
+       validated pvp relay (the target's client applies the damage) */
+    if(NET.on&&e.mine){
+      for(const [nm,r] of NET.remotes){
+        const m=r.e;
+        if(!m||m.dead||r.dim!==DIM)continue;
+        if(nx>m.x-0.45&&nx<m.x+0.45&&ny>m.y-0.1&&ny<m.y+1.9&&nz>m.z-0.45&&nz<m.z+0.45){
+          burstParticles(nx,ny,nz,B.BRICK,4,0.3);
+          netSend({t:'pvp',name:nm,dmg:Math.max(1,Math.round(e.dmg)),how:'gun'});
+          removeEnt(e);return;
+        }
       }
     }
     const bid=getBlock(Math.floor(nx),Math.floor(ny),Math.floor(nz));
