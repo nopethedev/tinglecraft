@@ -4,7 +4,7 @@
 
 /* ----- wall-mounted torches ----- */
 B.TORCH_PX=39;B.TORCH_NX=40;B.TORCH_PZ=41;B.TORCH_NZ=42;
-function isTorch(id){return id===B.TORCH||(id>=B.TORCH_PX&&id<=B.TORCH_NZ)||id===B.PG_LAMP;}
+function isTorch(id){return id===B.TORCH||(id>=B.TORCH_PX&&id<=B.TORCH_NZ)||id===B.PG_LAMP||id===B.BRLIGHT;}
 function wallTorchId(nx,nz){return nx>0?B.TORCH_PX:nx<0?B.TORCH_NX:nz>0?B.TORCH_PZ:B.TORCH_NZ;}
 const WTD={[B.TORCH_PX]:[1,0],[B.TORCH_NX]:[-1,0],[B.TORCH_PZ]:[0,1],[B.TORCH_NZ]:[0,-1]};
 for(const k in WTD){

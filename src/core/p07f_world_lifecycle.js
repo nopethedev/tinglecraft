@@ -40,6 +40,7 @@ function enterGame(){
 }
 async function quitToTitle(){
   endDisaster(true);
+  if(typeof netDisconnect==='function')netDisconnect(true);
   if(P&&P.dead)respawn();
   await saveToStorage(WORLD.name,true);
   playing=false;paused=false;

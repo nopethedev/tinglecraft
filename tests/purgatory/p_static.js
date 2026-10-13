@@ -119,7 +119,7 @@ boot.run(async()=>{
 
   /* ---- recipes ---- */
   /* v6.2 (lead, the creativity plan 3.5): the Creativity Update appends CR_RECIPE_N overworld recipes */
-  ok('RECIPES still holds 98 overworld recipes (+ '+(V.CR_RECIPE_N|0)+' v6.2 creativity recipes) and no purgatory id',V.RECIPES.length===98+(V.CR_RECIPE_N|0)&&V.RECIPES.every(r=>![r.o,...(r.s||[]),...Object.values(r.k||{})].some(x=>typeof x==='number'&&DEFS[x]&&DEFS[x].pg)));
+  ok('RECIPES still holds 99 overworld recipes (98 + the Tingle Craft Exit Door) (+ '+(V.CR_RECIPE_N|0)+' v6.2 creativity recipes) and no purgatory id',V.RECIPES.length===99+(V.CR_RECIPE_N|0)&&V.RECIPES.every(r=>![r.o,...(r.s||[]),...Object.values(r.k||{})].some(x=>typeof x==='number'&&DEFS[x]&&DEFS[x].pg)));
   {const g=[{id:B.LOG_O,count:1},null,null,null];const r=V.calcCraft(g,2);ok('calcCraft(grid,w) unchanged (a log makes 4 oak planks)',r&&r.id===B.PLANK_O&&r.count===4);}
 
   /* ---- sizes and caps ---- */

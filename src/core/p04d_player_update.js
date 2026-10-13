@@ -318,6 +318,7 @@ function doUse(dt){
       else if(hd.interact==='ench')openEnch();
       else if(hd.interact==='bed')doSleep(hit.x,hit.y,hit.z);
       else if(hd.interact==='crea')crInteract(hit,hd);
+      else if(hd.interact==='brexit')brUseDoor();
       return;
     }
   }

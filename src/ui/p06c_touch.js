@@ -67,5 +67,10 @@ function setupTouch(){
   bindBtn('btninv',()=>{if(modalOpen())closeModal();else openModal(P.mode==='c'?'creative':'inv');});
   bindBtn('btndrop',()=>dropSel(false));
   bindBtn('btnpause',()=>{if(paused)resumeGame();else pauseGame();});
+  bindBtn('btnchat',()=>{if(chatOpen)closeChat();else openChat('');});
+  bindBtn('btnfs',()=>{try{
+    if(document.fullscreenElement){if(document.exitFullscreen)document.exitFullscreen();}
+    else if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();
+  }catch(e){}});
 }
 

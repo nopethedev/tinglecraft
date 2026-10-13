@@ -7,7 +7,7 @@
 // rep() discipline: each anchor must match exactly once, else NOTHING is written.
 //   src/core/p01a_prologue.js   const GAME_VERSION = '<old>';  const RELEASE_LABEL = '<old label>';   -> new values
 //   html/dom/title.html         id="t_ver" ...><old label><                                       -> <new label>
-//   html/dom/panels_b.html      id="winsmall">DINGLECRAFT <old label>.                             -> <new label>
+//   html/dom/panels_b.html      id="winsmall">TINGLE CRAFT <old label>.                             -> <new label>
 //   src/ui/p28_patch_notes.js   top entry {v:GAME_VERSION,label:RELEASE_LABEL,...  -> {v:'<old>',label:'<old label>',...
 //                               and a new top entry {v:GAME_VERSION,label:RELEASE_LABEL,title:'<title>',lines:['TODO patch notes']}
 //                               (release refuses TODO)
@@ -57,7 +57,7 @@ function repRe(f, re, make) {
 rep(VERSION_FILE, `const GAME_VERSION = '${OLD}';`, `const GAME_VERSION = '${NEW}';`);
 rep(VERSION_FILE, `const RELEASE_LABEL = '${OLD_LABEL}';`, `const RELEASE_LABEL = '${LABEL}';`);
 repRe('html/dom/title.html', /(id="t_ver"[^>]*>)([^<]*)(<)/, (m) => { if (m[2] !== OLD_LABEL) die('html/dom/title.html: #t_ver says ' + JSON.stringify(m[2])); return m[1] + LABEL + m[3]; });
-rep('html/dom/panels_b.html', `>DINGLECRAFT ${OLD_LABEL}. `, `>DINGLECRAFT ${LABEL}. `);
+rep('html/dom/panels_b.html', `>TINGLE CRAFT ${OLD_LABEL}. `, `>TINGLE CRAFT ${LABEL}. `);
 rep(PATCH_FILE, '\n {v:GAME_VERSION,label:RELEASE_LABEL,title:\'', `\n {v:'${OLD}',label:'${OLD_LABEL}',title:'`);
 rep(PATCH_FILE, 'const PATCH_LOG=[\n', `const PATCH_LOG=[\n {v:GAME_VERSION,label:RELEASE_LABEL,title:'${TITLE}',lines:[\n    'TODO patch notes',\n  ]},\n`);
 rep('package.json', `"version": "${OLD}.0"`, `"version": "${NEW}.0"`);

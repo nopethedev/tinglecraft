@@ -51,6 +51,14 @@ function updateSky(dt){
       else{ambL.intensity=0.52;
         ambL.color&&ambL.color.setRGB&&ambL.color.setRGB(1,0.74,0.6);
         sunL.intensity=0.1;}
+    }else if(DIM==='backrooms'){
+      scene.background.setRGB(0.40,0.35,0.15);
+      scene.fog.color.copy(scene.background);
+      scene.fog.near=RD*CH*0.16;scene.fog.far=RD*CH*0.55;
+      if(fullbright&&GR.fbOK){ambL.intensity=1.05;sunL.intensity=0.1;}
+      else{ambL.intensity=0.8;
+        ambL.color&&ambL.color.setRGB&&ambL.color.setRGB(1,0.96,0.8);
+        sunL.intensity=0.08;}
     }else{
       scene.background.setRGB(0.6,0.78,0.96);
       scene.fog.color.copy(scene.background);

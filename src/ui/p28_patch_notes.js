@@ -3,7 +3,16 @@
    frozen core suite keep working, but players never see it. PATCH_LOG still feeds CHANGELOG.md (scripts/changelog.mjs)
    and the release tooling. Data-driven off GAME_VERSION so it can't drift from the shipped build. */
 const PATCH_LOG=[
- {v:GAME_VERSION,label:RELEASE_LABEL,title:'Replays',lines:[
+ {v:GAME_VERSION,label:RELEASE_LABEL,title:'Tingle Craft: The Multiplayer Update',lines:[
+    'Tingle Craft is here: this build of the game continues as Tingle Craft, based on DingleCraft — full credit to the original.',
+    'MULTIPLAYER: a Multiplayer button on the title screen. Add servers (name + address) like a certain block game, direct connect, and join.',
+    'server.py ships in the repo: a dependency-free Python multiplayer server. Run "python server.py --admin YourName" and it writes server_data/.',
+    'Accounts with passwords, hashed and stored on the server: nobody can join as you by typing your name. Admins are set by the server owner.',
+    'Server commands: /rtp, /pay, /money, /shop, /tpa, /tpaccept, /msg, /list, plus /kick, /ban and /op for admins. The world, balances and bans persist in server_data/.',
+    'THE BACKROOMS: a new dimension of mono-yellow rooms. Craft an Exit Door (planks, glowstone, a diamond) and click it — or type /backrooms on a server. Click the door again to leave. Do not noclip on purpose.',
+    'MOBILE: touch gets a chat button and a fullscreen button, plus the joystick, jump, sneak, inventory, drop and pause buttons it already had.',
+  ]},
+ {v:'6.9',label:'Release 1.0',title:'Replays',lines:[
     'REPLAYS: the game keeps your last 30 seconds ready. Press F8 and it saves as an MP4 video, sound, records and paintings included. Turn it on or off in Settings.',
     'SCREENSHOTS: F2 saves a picture (PNG).',
     'First launch says hello: share your best moments on r/DanDingle.',

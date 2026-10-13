@@ -152,6 +152,7 @@ function chatKey(e){
 function chatSubmit(raw){
   const t=(''+(raw||'')).replace(/[\u0000-\u001f]/g,' ').trim().slice(0,200);
   if(!t)return;
+  if(typeof NET!=='undefined'&&NET.on){netChatSubmit(t);return;}   /* multiplayer: the server is the room */
   if(t[0]!=='/'){chatLine('Dan',t,null,false);agBrainNudge();return;}
   const parts=t.slice(1).split(/\s+/);const cmd=(parts.shift()||'').toLowerCase();
   if(cmd==='msg'||cmd==='w'||cmd==='tell'||cmd==='whisper'){
@@ -193,10 +194,12 @@ function chatSubmit(raw){
     for(const t2 of a.thoughts.slice(-3))sysMsg('['+a.name+'] '+t2.txt);
     return;
   }
+  if(cmd==='backrooms'){brChatCmd();return;}
   if(cmd==='help'||cmd==='?'){
     sysMsg('Chat: T or Enter to talk, / for commands. Everyone on the server sees normal chat.');
     sysMsg('/msg <player> <text> (or /w) whisper | /r <text> reply | /think <player> read their mind');
     sysMsg('/bots [join|leave] AI players | /brain [status|on|off] the AI link | /pair <code> connect to the brain server');
+    sysMsg('/backrooms visit the yellow rooms (an Exit Door block works too)');
     sysMsg('The AI players start with nothing and play by your survival rules: they chop, mine, craft, smelt and build only with what they gathered.');
     return;
   }
@@ -213,7 +216,7 @@ function renderTab(){
   const s=JSON.stringify(rows);
   if(s===_tabLast)return;
   _tabLast=s;el.style.display='block';el.innerHTML='';
-  const h=document.createElement('div');h.className='tabh';h.textContent='DINGLECRAFT — '+rows.length+' online';el.appendChild(h);
+  const h=document.createElement('div');h.className='tabh';h.textContent='TINGLE CRAFT — '+rows.length+' online';el.appendChild(h);
   for(const r of rows){const d=document.createElement('div');d.className='tabr';
     d.textContent=r[0].padEnd(18,' ')+'  '+(''+r[1]).padStart(9,' ')+'  '+(''+r[2]).padStart(9,' ')+(r[3]?'  '+r[3]:'');el.appendChild(d);}
 }

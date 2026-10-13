@@ -101,7 +101,7 @@ function rpShotNow(){
   try{const c=renderer.domElement,k=document.createElement('canvas');k.width=c.width;k.height=c.height;k.getContext('2d').drawImage(c,0,0);
     k.toBlob(b=>{if(!b){showToast('📸 Could not take the screenshot');return;}
       if(RP.onShot){RP.onShot(b);return;}
-      const name='DINGLECRAFT_'+rpStamp()+'.png';rpDownload(b,name);showToast('📸 Screenshot saved: '+name);},'image/png');
+      const name='TINGLE_CRAFT_'+rpStamp()+'.png';rpDownload(b,name);showToast('📸 Screenshot saved: '+name);},'image/png');
   }catch(e){showToast('📸 Could not take the screenshot');}
 }
 /* called once per rendered frame, right after the render (p07h), while the drawing buffer still holds the picture */
@@ -195,7 +195,7 @@ async function rpSave(bytesOnly){
     const a=await rpAudio(t0,t1);
     mp4=rpMux({w:RP.w,h:RP.h,desc:RP.desc,v:ch.map(c=>({b:c.b,key:c.key,t:c.t-t0})),vEnd:t1-t0,a});
     if(!bytesOnly){
-      const name='DINGLECRAFT_replay_'+rpStamp()+'.mp4';rpDownload(new Blob([mp4],{type:'video/mp4'}),name);
+      const name='TINGLE_CRAFT_replay_'+rpStamp()+'.mp4';rpDownload(new Blob([mp4],{type:'video/mp4'}),name);
       showToast('🎬 Saved the last '+Math.round((t1-t0)/1e6)+' s'+(a?'':' (no sound)')+'. Share it on r/DanDingle!');
     }
   }catch(e){showToast('🎬 Could not save the replay ('+((e&&e.message)||e)+')');mp4=null;}

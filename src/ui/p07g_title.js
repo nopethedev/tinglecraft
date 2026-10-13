@@ -12,7 +12,7 @@
 /* behind it stays.                                                      */
 /* ===================================================================== */
 const TM={view:'main',booted:false,live:false,disarm:null,ready:false};
-function tmEls(){return {main:$('tmain'),new:$('tnew'),load:$('tload'),gr:$('tgr'),name:$('tname'),cred:$('tcred')};}
+function tmEls(){return {main:$('tmain'),new:$('tnew'),load:$('tload'),gr:$('tgr'),name:$('tname'),cred:$('tcred'),mp:$('tmp'),mplogin:$('mplogin'),mpedit:$('mpedit')};}
 function tmVisible(el){return !!el&&!el.hidden&&(typeof el.getClientRects!=='function'||el.getClientRects().length>0);}
 /* the focusable controls of the active view, in order */
 function tmItems(){
@@ -32,6 +32,9 @@ function tmShow(view,focusId){
   else if(view==='name')tmFocus($('t_pname'));
   else if(view==='gr')tmFocus(tmItems()[0]);
   else if(view==='cred')tmFocus($('t_back_cred'));
+  else if(view==='mp')tmFocus(tmItems()[0]);
+  else if(view==='mplogin')tmFocus($('mp_user'));
+  else if(view==='mpedit')tmFocus($('mp_sname'));
   else tmFocus($(focusId||(from==='new'?'t_go_new':from==='load'?'t_go_load':from==='cred'?'t_credits':'')));
 }
 /* Survival / Creative: two buttons in front of the (hidden) #t_mode select that startNewWorld reads */
@@ -49,11 +52,13 @@ function tmKey(e){
     if(typeof patchOpen!=='undefined'&&patchOpen){e.preventDefault();closePatch();tmFocus($('t_patch'));return;}
     if(typeof helpOpen!=='undefined'&&helpOpen)return;   /* Help & Controls has no escape (a feature since 2.11) */
     if(TM.view==='name')return;                              /* the first-launch name has to be answered */
-    if(TM.view!=='main'){e.preventDefault();tmShow(TM.view==='gr'?'load':'main');}
+    if(TM.view!=='main'){e.preventDefault();tmShow(TM.view==='gr'?'load':((TM.view==='mplogin'||TM.view==='mpedit')?'mp':'main'));}
     return;
   }
   if((typeof helpOpen!=='undefined'&&helpOpen)||(typeof patchOpen!=='undefined'&&patchOpen))return;
   if(k==='Enter'&&a&&(a.id==='t_name'||a.id==='t_seed')){e.preventDefault();const b=$('t_new');if(b)b.click();return;}
+  if(k==='Enter'&&a&&(a.id==='mp_user'||a.id==='mp_pass')){e.preventDefault();const b=$('mp_login');if(b&&!b.disabled)b.click();return;}
+  if(k==='Enter'&&a&&(a.id==='mp_sname'||a.id==='mp_saddr')){e.preventDefault();const b=$('mp_save');if(b)b.click();return;}
   if(k==='Enter'&&a&&a.id==='t_pname'){e.preventDefault();const b=$('t_pname_ok');if(b)b.click();return;}
   if(k==='Enter'&&a&&a.id==='t_bots'){e.preventDefault();a.click();return;}
   const vert=k==='ArrowDown'||k==='ArrowUp',hor=k==='ArrowLeft'||k==='ArrowRight';
@@ -122,6 +127,8 @@ function tmBoot(){
   on('t_back_load',()=>{tmShow('main');playS('click');});
   on('t_credits',()=>{tmShow('cred');playS('click');});
   on('t_back_cred',()=>{tmShow('main');playS('click');});
+  on('t_mp',()=>{if(typeof mpOpenList==='function')mpOpenList();tmShow('mp');playS('click');});
+  on('t_back_mp',()=>{tmShow('main');playS('click');});
   on('t_reddit',()=>{playS('click');try{window.open('https://www.reddit.com/r/DanDingle/','_blank','noopener');}catch(e){}});
   on('t_mode_s',()=>{tmMode('s');playS('click');});
   on('t_mode_c',()=>{tmMode('c');playS('click');});

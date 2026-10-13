@@ -4,13 +4,15 @@
   <div id="tshade" aria-hidden="true"></div>
   <div id="tstage">
     <header id="thead">
-      <img id="tlogo" src="data:image/png;base64,{{LOGO_PNG_BASE64}}" alt="DINGLECRAFT">
-      <div id="ttag"><span id="t_ver">Release 1.0</span></div>
+      <img id="tlogo" src="data:image/png;base64,{{LOGO_PNG_BASE64}}" alt="TINGLE CRAFT">
+      <div id="twordmark" aria-label="TINGLE CRAFT">TINGLE<span id="twordmark2">CRAFT</span></div>
+      <div id="ttag"><span id="t_ver">Release 1.1</span></div>
     </header>
     <nav id="tmain" class="tview" aria-label="Main menu">
       <button id="t_continue" class="mc-btn tgo" style="display:none"></button>
       <button id="t_go_new" class="mc-btn">Create New World</button>
       <button id="t_go_load" class="mc-btn">Load World</button>
+      <button id="t_mp" class="mc-btn">Multiplayer</button>
       <button id="t_help" class="mc-btn">Controls</button>
       <button id="t_patch" class="mc-btn" hidden style="display:none">What’s New</button>
       <button id="t_reddit" class="mc-btn">r/DanDingle</button>
@@ -52,7 +54,7 @@
       </div>
     </section>
     <section id="tname" class="tview panel" aria-labelledby="tname_h" hidden>
-      <h2 id="tname_h">Welcome to DINGLECRAFT</h2>
+      <h2 id="tname_h">Welcome to TINGLE CRAFT</h2>
       <label class="mlabel" for="t_pname">What should everyone call you?</label>
       <input id="t_pname" class="mc-in" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Your name">
       <div class="trow"><button id="t_pname_ok" class="mc-btn tgo">Let's go</button></div>
@@ -77,11 +79,47 @@
     </section>
     <section id="tcred" class="tview panel" aria-labelledby="tcred_h" hidden>
       <h2 id="tcred_h">Credits</h2>
+      <div class="mlabel"><b>Tingle Craft</b> is built on <b>DINGLECRAFT</b> — the original fan-made voxel sandbox by Dan Dingle (dandingle, dandingle.store/dinglecraft). All original code, art and ideas are his: this fork only adds multiplayer, The Backrooms and touch polish, and stands on his shoulders. Thank you, Dan.</div>
       <div class="mlabel">These 3D models are used under CC-BY 3.0 (creativecommons.org/licenses/by/3.0), converted to packed vertex data and recoloured: “Skateboard” (poly.pizza/m/7Dfn4VtTCWY), “Boots” (poly.pizza/m/7HbqG8RwRcA), “Anchor” (poly.pizza/m/fjAwIosTQHy), “Hang glider” (poly.pizza/m/4WmEAyjrvW5), “Magnet” (poly.pizza/m/dD2RIIea6WR) and “Trampoline” (poly.pizza/m/44njxNdC0gt) by Poly by Google, and “Jetpack” (poly.pizza/m/8VafbXInymc) by Roman Miller.</div>
       <div class="mlabel">CC0, with thanks: the guns and the pig cannon by Quaternius, the bow and the sword from KayKit Adventurers, the other tools from Kenney’s Survival Kit.</div>
       <div class="mlabel">three.js r128 (MIT). Full list: THIRD_PARTY.md.</div>
       <div class="trow">
         <button id="t_back_cred" class="mc-btn">Back</button>
+      </div>
+    </section>
+    <section id="tmp" class="tview panel" aria-labelledby="tmp_h" hidden>
+      <h2 id="tmp_h">Play Multiplayer</h2>
+      <div class="mlabel tgrhint">Join a Tingle Craft server. The server owner runs server.py from the repo: <span class="tt">python server.py --admin YourName</span></div>
+      <div id="mp_list"></div>
+      <div class="trow">
+        <button id="t_back_mp" class="mc-btn">Back</button>
+        <button id="mp_add" class="mc-btn">Add Server</button>
+        <button id="mp_direct" class="mc-btn">Direct Connect</button>
+      </div>
+    </section>
+    <section id="mplogin" class="tview panel" aria-labelledby="mplogin_h" hidden>
+      <h2 id="mplogin_h">Join Server</h2>
+      <div id="mp_status" class="mlabel tgrhint">Connecting…</div>
+      <label class="mlabel" for="mp_user">Username</label>
+      <input id="mp_user" class="mc-in" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Your account name">
+      <label class="mlabel" for="mp_pass">Password</label>
+      <input id="mp_pass" class="mc-in" type="password" maxlength="64" autocomplete="off" placeholder="Pick one if you are new">
+      <div class="trow">
+        <button id="mp_back_login" class="mc-btn">Back</button>
+        <button id="mp_login" class="mc-btn">Log In</button>
+        <button id="mp_register" class="mc-btn tgo">Register</button>
+      </div>
+    </section>
+    <section id="mpedit" class="tview panel" aria-labelledby="mpedit_h" hidden>
+      <h2 id="mpedit_h">Server Info</h2>
+      <label class="mlabel" for="mp_sname">Server Name</label>
+      <input id="mp_sname" class="mc-in" maxlength="24" autocomplete="off" spellcheck="false" placeholder="My Server">
+      <label class="mlabel" for="mp_saddr">Server Address</label>
+      <input id="mp_saddr" class="mc-in" maxlength="120" autocomplete="off" spellcheck="false" placeholder="e.g. 127.0.0.1:8765 or ws://host:port">
+      <div class="trow">
+        <button id="mp_back_edit" class="mc-btn">Back</button>
+        <button id="mp_del" class="mc-btn">Delete</button>
+        <button id="mp_save" class="mc-btn tgo">Save</button>
       </div>
     </section>
   </div>

@@ -95,6 +95,10 @@ ai_players/a8_mind.js
 ai_players/a9_ui.js
 ai_players/mob_helpers.js
 
+# multiplayer (Tingle Craft): the client that talks to server.py
+net/net0_client.js
+net/net1_ui.js
+
 # PART 57: the Malgorath Update
 malgorath/m0_contract.js
 malgorath/m1_layout.js
@@ -210,4 +214,5 @@ texpacks/models/pg_blank.js
 texpacks/loaders/pcast_close.js
 
 # export branch + boot
+backrooms/br0_backrooms.js
 boot/export_boot.js

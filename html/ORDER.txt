@@ -8,6 +8,7 @@ css/ai_players.css
 css/purgatory.css
 css/creativity.css
 css/malgorath.css
+css/mp.css
 01_body_open.html
 dom/hud.html
 dom/touch_cursor.html

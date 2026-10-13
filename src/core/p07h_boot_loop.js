@@ -15,6 +15,7 @@ function boot(){
   TP.og={op:matOp,cut:matCut,wat:matWat};
   setupSky();setupTorchLights();
   buildHotbar();setupInput();wireMenus();
+  netBoot();
   addEventListener('resize',()=>{
     renderer.setSize(window.innerWidth,window.innerHeight);
     camera.aspect=window.innerWidth/window.innerHeight;
@@ -57,7 +58,7 @@ function frame(t){
     updateDisaster(paused?0:dt);
     if(playing&&!paused)updateStocks(dt);
     trickFrame(paused?0:dt);
-    if(playing&&!paused){if(DIM==='over'){processVillages(dt);processParks(dt);processWD(dt);processCells(dt);tickTitans(dt);processRoosts(dt);tickMalg(dt);tickCompass(dt);}tickSpawners(dt);updateBossBar();updateXPHud();tickFlow(dt);updateArmorHud();tickDragons(dt);tickTrail(dt);tickBPass(dt);updateCut(dt);tickWin(dt);tickNuke(dt);tickMega(dt);tickTerr(dt);tickXray(dt);tickGadgets(dt);tickBig(dt);tickDisp(dt);tickLawns(dt);tickCine(dt);tickSnail(dt);tickScare(dt);tickHorror(dt);processNether(dt);processAether(dt);processPuppet(dt);tickPortal(dt);tickBots(dt);tickPCompass(dt);processCrea(dt);}
+    if(playing&&!paused){if(DIM==='over'){processVillages(dt);processParks(dt);processWD(dt);processCells(dt);tickTitans(dt);processRoosts(dt);tickMalg(dt);tickCompass(dt);}tickSpawners(dt);updateBossBar();updateXPHud();tickFlow(dt);updateArmorHud();tickDragons(dt);tickTrail(dt);tickBPass(dt);updateCut(dt);tickWin(dt);tickNuke(dt);tickMega(dt);tickTerr(dt);tickXray(dt);tickGadgets(dt);tickBig(dt);tickDisp(dt);tickLawns(dt);tickCine(dt);tickSnail(dt);tickScare(dt);tickHorror(dt);processNether(dt);processAether(dt);processPuppet(dt);processBackrooms(dt);tickPortal(dt);tickBots(dt);tickPCompass(dt);processCrea(dt);netTick(dt);}
     const hideCur=playing&&!paused&&P&&!P.dead&&!modalOpen();
     if(hideCur!==curHidden){curHidden=hideCur;$('gl').style.cursor=hideCur?'none':'default';}
     engineSnd(!paused&&!!P.ride&&(P.ride.t==='car'||P.ride.t==='plane'),P.ride?P.ride.spd:0);

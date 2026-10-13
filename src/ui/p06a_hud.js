@@ -134,7 +134,7 @@ function drawDebug(dt){
   $('debug').style.display='block';
   const bi=colInfo(Math.floor(P.x),Math.floor(P.z));
   $('debug').textContent=
-    'DINGLECRAFT '+RELEASE_LABEL+'  '+fpsShow+' fps\n'+
+    'TINGLE CRAFT '+RELEASE_LABEL+'  '+fpsShow+' fps\n'+
     'XYZ: '+P.x.toFixed(1)+' / '+P.y.toFixed(1)+' / '+P.z.toFixed(1)+'\n'+
     'Biome: '+BIOME_NAME[bi.b]+'  Seed: '+SEED+'\n'+
     'Chunks: '+chunks.size+'  Entities: '+entities.length+'\n'+

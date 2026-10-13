@@ -22,7 +22,7 @@ export const SITES = [
 export const LABEL_SITES = [
   { file: VERSION_FILE, re: /^const RELEASE_LABEL = '([^'\\<>\n]+)';/gm },
   { file: 'html/dom/title.html', re: /id="t_ver"[^>]*>([^<]*)</g },
-  { file: 'html/dom/panels_b.html', re: /id="winsmall"[^>]*>DINGLECRAFT ([A-Za-z0-9 .\-]+?)\. /g },
+  { file: 'html/dom/panels_b.html', re: /id="winsmall"[^>]*>TINGLE CRAFT ([A-Za-z0-9 .\-]+?)\. /g },
 ];
 
 export function readVersion(repo = REPO) {

@@ -1,7 +1,9 @@
 /* =====================================================================
-   DINGLECRAFT — an original, fan-made voxel sandbox inspired by Minecraft;
-   not affiliated with Mojang or Microsoft. No Mojang assets are used.
-   Original code. Art is drawn in code or AI-generated for this project;
+   TINGLE CRAFT — a fan-made voxel sandbox inspired by Minecraft, and a
+   fork of DINGLECRAFT by dandingle: the original game, code and art are
+   his, and this build continues as Tingle Craft with full credit to him.
+   Not affiliated with Mojang or Microsoft. No Mojang assets are used.
+   Art is drawn in code or AI-generated for the original project;
    a few third-party meshes are credited in THIRD_PARTY.md.
    ---------------------------------------------------------------------
    SAVE FORMAT v1 (keep loaders for this format in all future versions):
@@ -14,8 +16,8 @@
    ===================================================================== */
 'use strict';
 
-const GAME_VERSION = '6.9';
-const RELEASE_LABEL = 'Release 1.0';   /* the public name of this game version (docs/RELEASING.md): GAME_VERSION stays the internal, monotonic number */
+const GAME_VERSION = '7.0';
+const RELEASE_LABEL = 'Release 1.1';   /* the public name of this game version (docs/RELEASING.md): GAME_VERSION stays the internal, monotonic number */
 var HIT_HOW=null,EXPL_BY=null;  /* damage attribution (PART 53) */
 var TP={id:'og',q:-1,qr:1,hr:false,busy:false,want:null,shadow:false,mods:[],live:[],og:null,ogR:null,ogF:null,ev:{},warm:null,devTexBase:null};  /* texture packs (PART 54) */
 const SAVE_FORMAT  = 1;

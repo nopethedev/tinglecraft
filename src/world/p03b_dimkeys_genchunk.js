@@ -1,7 +1,7 @@
 /* ---- dimensions: keys carry an 'n;'/'a;' prefix outside the overworld ---- */
 var DIM='over';
-function dimPfx(){return DIM==='over'?'':(DIM==='nether'?'n;':(DIM==='puppet'?'m;':'a;'));}
-function keyDim(k){return k[1]===';'?(k[0]==='n'?'nether':(k[0]==='m'?'puppet':'aether')):'over';}
+function dimPfx(){return DIM==='over'?'':(DIM==='nether'?'n;':(DIM==='puppet'?'m;':(DIM==='backrooms'?'b;':'a;')));}
+function keyDim(k){return k[1]===';'?(k[0]==='n'?'nether':(k[0]==='m'?'puppet':(k[0]==='b'?'backrooms':'aether'))):'over';}
 function keyCore(k){return k[1]===';'?k.slice(2):k;}
 function dimP(k){
   if(keyDim(k)!==DIM)return null;
@@ -54,6 +54,7 @@ function genChunk(cx,cz){
   if(DIM==='nether')return genChunkNether(cx,cz);
   if(DIM==='aether')return genChunkAether(cx,cz);
   if(DIM==='puppet')return genChunkPuppet(cx,cz);
+  if(DIM==='backrooms')return genChunkBackrooms(cx,cz);
   const blocks=new Uint8Array(CH*WH*CH);
   const x0=cx*CH,z0=cz*CH;
   const cf=genCaveField(x0,z0);

@@ -4,6 +4,12 @@ DINGLECRAFT is original work covered by [LICENSE](LICENSE), with the exceptions 
 stays under its own licence**, whatever LICENSE says about the rest of the game. The in-game Help screen (Help &
 Controls → Credits) carries the same credits.
 
+> **Fork note (Tingle Craft):** this repository is a fork of DINGLECRAFT by Dan Dingle (dandingle,
+> <https://dandingle.store/dinglecraft>). The original game — code, art, audio and design — is entirely his work,
+> and this fork continues it with full credit. The fork's additions (the multiplayer client in `src/net/`, the
+> `server.py` multiplayer server, The Backrooms dimension in `src/backrooms/`, and the touch polish) follow the
+> same licence terms as the rest of the repository.
+
 ## 3D models under CC-BY 3.0
 
 Licence: Creative Commons Attribution 3.0, <https://creativecommons.org/licenses/by/3.0/>. Each model was downloaded from

@@ -58,7 +58,7 @@ function snapshot(name){
     time:+(timeOfDay%1).toFixed(4),
     dim:DIM,
     snl:SNL_ON?1:0,
-    nukes:NUKES.map(n=>[n.x,n.y,n.z,n.d==='nether'?1:(n.d==='aether'?2:(n.d==='puppet'?3:0))]),
+    nukes:NUKES.map(n=>[n.x,n.y,n.z,n.d==='nether'?1:(n.d==='aether'?2:(n.d==='puppet'?3:(n.d==='backrooms'?4:0)))]),
     player:{x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),
       yaw:+P.yaw.toFixed(3),pitch:+P.pitch.toFixed(3),hp:P.hp,hunger:P.hunger,sel:P.sel,
       spawn:P.spawn.map(v=>+v.toFixed(1)),
@@ -90,11 +90,13 @@ function snapshot(name){
     ...crSaveFields(),
     bots:agSnapshot(),
     spw:[...SPW.keys()],
+    ...brSaveFields(),
     edits,be,ents};
 }
 function resetWorld(){
   agReset();
   DIM='over';
+  BR.over=null;
   SNL=null;SNL_ON=false;
   NUKES.length=0;NARM.e=null;NARM.t=0;nukeHud(-1);
   for(const k2 in ENT_STASH)delete ENT_STASH[k2];
@@ -135,10 +137,10 @@ function applySave(d){
   mgLoad(d);
   timeOfDay=+d.time||0.3;
   const dd=typeof mpDimAlias==='function'?mpDimAlias(d.dim):d.dim;        /* Release 1.0: the old purgatory key loads as 'puppet' */
-  DIM=(dd==='nether'||dd==='aether'||dd==='puppet')?dd:'over';
+  DIM=(dd==='nether'||dd==='aether'||dd==='puppet'||dd==='backrooms')?dd:'over';
   SNL=null;SNL_ON=!!d.snl;
   NUKES.length=0;
-  for(const a of (d.nukes||[]))NUKES.push({x:a[0],y:a[1],z:a[2],d:a[3]===1?'nether':(a[3]===2?'aether':(a[3]===3?'puppet':'over'))});
+  for(const a of (d.nukes||[]))NUKES.push({x:a[0],y:a[1],z:a[2],d:a[3]===1?'nether':(a[3]===2?'aether':(a[3]===3?'puppet':(a[3]===4?'backrooms':'over')))});
   for(const k in (d.edits||{})){
     const m=new Map();
     const kd=(k[1]===';')?k.slice(0,2):'';
@@ -180,6 +182,7 @@ function applySave(d){
   INFKILL.clear();for(const v of (d.infkill||[]))INFKILL.add(v);
   VALKILL.clear();for(const v of (d.valkill||[]))VALKILL.add(v);
   mpLoad(d.mp,d.stash);
+  brLoad(d);
   ASEEN.clear();APEND.length=0;for(const v of (d.aseen||[]))ASEEN.add(v);
   PSEEN.clear();for(const v of (d.pseen||[]))PSEEN.add(v);
   WDSEEN.clear();for(const v of (d.wdseen||[]))WDSEEN.add(v);
