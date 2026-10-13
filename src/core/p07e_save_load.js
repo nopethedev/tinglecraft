@@ -104,6 +104,9 @@ function resetWorld(){
   closeModal(true);
   for(const ch of chunks.values())disposeChunkMeshes(ch);
   chunks.clear();chunkEdits.clear();blockEnts.clear();torches.clear();COLM.clear();
+  if(typeof machs!=='undefined')machs.clear();
+  if(typeof MC_PROG!=='undefined')MC_PROG.clear();
+  if(typeof MC_POW!=='undefined')MC_POW.clear();
   crReset();
   initMarket();
   VSEEN.clear();VLAY.clear();VPEND.length=0;VB=null;
@@ -148,6 +151,7 @@ function applySave(d){
     for(const lk in d.edits[k]){
       const id=d.edits[k][lk]|0;
       m.set(lk,id);
+      if(typeof mcReplayKey==='function')mcReplayKey(k,lk,id);
       if(isTorch(id)){
         const p=lk.split(',');
         torches.add(kd+(+ck[0]*CH+ +p[0])+','+(+p[1])+','+(+ck[1]*CH+ +p[2]));
@@ -158,6 +162,7 @@ function applySave(d){
   for(const k in (d.be||{})){
     const b=d.be[k];
     if(b.t==='chest'){b.inv=(b.inv||[]).slice(0,27);while(b.inv.length<27)b.inv.push(null);}
+    b._k=k;
     blockEnts.set(k,b);
   }
   const pl=d.player;

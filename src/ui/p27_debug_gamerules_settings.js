@@ -29,8 +29,9 @@ const GR_LABELS=[
 /* Release 1.0: game rules that shape the menus (set on Create New World, saved with the world) */
 function grApplyUI(){
   const show=(id,on)=>{const b=$(id);if(b&&b.style)b.style.display=on?'':'none';};
-  show('p_store',GR.store);show('p_pow',GR.powers);show('p_debug',GR.cheats);show('p_bright',GR.fbOK);
-  if(!GR.cheats&&dbgmOpen)closeDbgm();
+  const mpNonAdmin=typeof NET!=='undefined'&&NET.on&&!NET.admin;
+  show('p_store',GR.store);show('p_pow',GR.powers);show('p_debug',GR.cheats&&!mpNonAdmin);show('p_bright',GR.fbOK);
+  if((!GR.cheats||mpNonAdmin)&&dbgmOpen)closeDbgm();
 }
 function grToggle(k){
   if(!(k in GR))return false;
@@ -45,6 +46,7 @@ function grToggle(k){
 }
 function openDbgm(){
   if(!GR.cheats)return;   /* the Cheats game rule */
+  if(typeof NET!=='undefined'&&NET.on&&!NET.admin)return;   /* admins only in multiplayer */
   dbgmOpen=true;
   const el=$('dbgm');
   if(el)el.style.display='flex';

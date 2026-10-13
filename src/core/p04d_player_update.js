@@ -308,6 +308,7 @@ function doUse(dt){
       if(PREG.interact[hd.interact])PREG.interact[hd.interact](hit,hd);
       else if(hd.interact==='craft')openModal('craft');
       else if(hd.interact==='furnace'){ensureBE(hit.x,hit.y,hit.z,'furnace');openModal('furnace',bkey(hit.x,hit.y,hit.z));}
+      else if(hd.interact==='engine'){ensureBE(hit.x,hit.y,hit.z,'engine');openModal('engine',bkey(hit.x,hit.y,hit.z));}
       else if(hd.interact==='chest'){ensureBE(hit.x,hit.y,hit.z,'chest');openModal('chest',bkey(hit.x,hit.y,hit.z));}
       else if(hd.interact==='disp'){dispUse(hit.x,hit.y,hit.z);}
       else if(hd.interact==='cine')openCine();
@@ -669,6 +670,7 @@ function doUse(dt){
         }
       }
       let pid=st.id;
+      if((st.id===B.CONV||st.id===B.CONVZ)&&typeof mcPickConv==='function')pid=mcPickConv();   /* belts face where you look */
       if(st.id===B.TORCH){
         if(DEFS[hit.id].replace||hit.ny===1){
           if(!solidAt(tx,ty-1,tz))blocked=true;

@@ -24,7 +24,7 @@ boot.run(async()=>{
 
   /* ---- ids, tiles, names (plan 2.1) ---- */
   const free=[];for(let i=1;i<256;i++)if(!D[i])free.push(i);
-  ok('no new block id: the free ids below 256 are still exactly 248, 249 (212 + 217-219 are the Backrooms, Tingle Craft)',free.join()==='248,249');
+  ok('no free block id below 256 remains (the v7.1 Steam Engine and Conveyor Belt claimed 248 and 249, the last two the ledger ever had; 212 + 217-219 are the Backrooms)',free.length===0);
   const st=Object.keys(D).map(Number).filter(i=>i>=256&&i<10000);
   ok('one new static item: 365 is the highest static id; 309 and 339 stay unused',Math.max(...st)===365&&!D[309]&&!D[339]);
   const J=D[365];
@@ -32,7 +32,7 @@ boot.run(async()=>{
     J.tool.dmg===10&&J.tool.dur===900&&J.stack===1&&J.hide===true&&typeof J.ipaint==='function'&&V.IT.MG_JAW===365&&V.MGC.JAW===365);
   ok("no other def is named Malgorath's Jaw (bots resolve names)",Object.keys(D).filter(i=>D[i].name==="Malgorath's Jaw").length===1);
   const Cc=V.crCore();
-  ok('no new atlas tile beyond the Backrooms five (tn 303 = 290 + 13 creativity tiles; no mg_ tile)',Cc.tn===290+V.CR_TILES.length&&!Object.keys(Cc.Tl).some(n=>/^mg/.test(n)));
+  ok('no new atlas tile beyond the machine four (tn 307 = 294 load-time + 13 creativity tiles; no mg_ tile)',Cc.tn===294+V.CR_TILES.length&&!Object.keys(Cc.Tl).some(n=>/^mg/.test(n)));
   const dm=MT.demon;
   ok('MOBT.demon: hp 300 (one round), boss, hostile, xp 0, hw 2.5, h 14, kbRes 1, pnc 1, mg boss, body/legc unchanged (the egg tile)',dm.hp===300&&dm.boss&&dm.hostile&&dm.xp===0&&
     dm.hw===2.5&&dm.h===14&&dm.kbRes===1&&dm.pnc===1&&dm.mg==='boss'&&dm.body==='#3d1014'&&dm.legc==='#1a1416');

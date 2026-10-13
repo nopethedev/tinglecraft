@@ -58,6 +58,7 @@ function setBlock(x,y,z,id){
   const k=bkey(x,y,z);
   if(isTorch(old))torches.delete(k);
   if(isTorch(id))torches.add(k);
+  if(typeof mcOnSet==='function')mcOnSet(x,y,z,old,id);
   if(isDoorId(old)&&!isDoorId(id)){
     const py=DEFS[old].door.half?y-1:y+1;
     if(isDoorId(getBlock(x,py,z)))setBlock(x,py,z,B.AIR);

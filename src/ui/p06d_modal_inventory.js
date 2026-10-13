@@ -1,7 +1,7 @@
 /* ----- modal / inventory system ----- */
 const MODAL={kind:null,slots:[],grid:null,gw:0,be:null,bek:null};
 let cursorStack=null;
-function modalOpen(){return !!MODAL.kind||crOn||pcOpen||dlgOpen||casOpen||dselOpen||enchOpen||storeOpen||powOpen||winOpen||cmpOpen||dbgmOpen||patchOpen||setOpen||terrOpen||helpOpen||cineOpen||chatOpen||pguOn||presOn;}
+function modalOpen(){return !!MODAL.kind||crOn||pcOpen||dlgOpen||casOpen||dselOpen||enchOpen||storeOpen||powOpen||winOpen||cmpOpen||dbgmOpen||patchOpen||setOpen||terrOpen||helpOpen||cineOpen||chatOpen||pguOn||presOn||mpGUIOpen();}
 
 function slotDiv(cls){
   const d=document.createElement('div');d.className='slot'+(cls?' '+cls:'');
@@ -58,8 +58,9 @@ function quickMove(s){
   let dest=null;
   if(s.home==='inv'){
     if(MODAL.kind==='chest')dest=MODAL.be.inv;
-    else if(MODAL.kind==='furnace'){
+    else if(MODAL.kind==='furnace'||MODAL.kind==='engine'){
       if(FUELS[st.id]!=null){const left=beAdd(MODAL.be,'fuel',st);s.set(left>0?st:null);redrawHotbar();return;}
+      if(MODAL.kind==='engine')return;
       const left=beAdd(MODAL.be,'in',st);s.set(left>0?st:null);redrawHotbar();return;
     }
     else{ /* move hotbar <-> backpack */
@@ -155,6 +156,11 @@ function redrawModal(){
     $('flame').style.height=(be.burnMax>0?be.burn/be.burnMax*100:0)+'%';
     $('cookbar').style.width=clamp(be.cook/SMELT_TIME*100,0,100)+'%';
   }
+  if(MODAL.kind==='engine'&&MODAL.be){
+    const be=MODAL.be;
+    const f=$('eflame');
+    if(f)f.style.height=(be.burnMax>0?clamp(be.burn/be.burnMax*100,0,100):0)+'%';
+  }
 }
 function gridRow(parent,n){
   const d=document.createElement('div');d.className='grow';
@@ -186,7 +192,7 @@ function openModal(kind,bek){
   document.exitPointerLock&&document.exitPointerLock();
   const M=$('modal'),body=$('mbody');
   body.innerHTML='';
-  $('mtitle').textContent={inv:'Inventory',craft:'Crafting Table',furnace:'Furnace',chest:'Chest',creative:'Creative',pcan:'The Bin',plab:'Lab Bench',ptrans:'Transmogrifier'}[kind];
+  $('mtitle').textContent={inv:'Inventory',craft:'Crafting Table',furnace:'Furnace',chest:'Chest',creative:'Creative',pcan:'The Bin',plab:'Lab Bench',ptrans:'Transmogrifier',engine:'Steam Engine'}[kind];
   if(kind==='inv'||kind==='craft'||kind==='pcan'||kind==='plab'||kind==='ptrans'){
     const gw=kind==='inv'?2:3;
     MODAL.gw=gw;MODAL.grid=Array(gw*gw).fill(null);
@@ -239,6 +245,22 @@ function openModal(kind,bek){
     const ar=document.createElement('div');ar.className='cookbox';ar.innerHTML='<div id="cookbar"></div>';
     top.appendChild(ar);
     mkSlot(top,()=>be.out,v=>be.out=v,'result').home='be';
+    body.appendChild(top);
+    addInvSlots(body);
+  }else if(kind==='engine'){
+    MODAL.be=blockEnts.get(bek);
+    const be=MODAL.be;
+    const top=document.createElement('div');top.className='mcraft mfurn';
+    const col=document.createElement('div');col.className='fcol';
+    const fl=document.createElement('div');fl.className='flamebox';
+    fl.innerHTML='<div id="eflame"></div>';
+    col.appendChild(fl);
+    mkSlot(col,()=>be.fuel,v=>be.fuel=v).home='be';
+    top.appendChild(col);
+    const info=document.createElement('div');info.className='mlabel';
+    info.style.maxWidth='240px';
+    info.textContent='Feed it coal or planks. While the fire burns it puffs smoke and powers every conveyor belt within 3 blocks. Belts next to a burning furnace become a heated section: drops that ride over it get smelted.';
+    top.appendChild(info);
     body.appendChild(top);
     addInvSlots(body);
   }else if(kind==='chest'){

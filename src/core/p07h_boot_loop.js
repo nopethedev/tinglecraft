@@ -41,6 +41,7 @@ function frame(t){
       updateEntities(dt);
       mobsTick(dt);
       furnaceTick(dt);
+      if(typeof machTick==='function')machTick(dt);
       updateChunks();
       updateSky(dt);
       updateTorchLights();

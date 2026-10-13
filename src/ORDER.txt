@@ -98,6 +98,7 @@ ai_players/mob_helpers.js
 # multiplayer (Tingle Craft): the client that talks to server.py
 net/net0_client.js
 net/net1_ui.js
+net/net2_gui.js
 
 # PART 57: the Malgorath Update
 malgorath/m0_contract.js
@@ -171,6 +172,13 @@ texpacks/tC_player.js
 texpacks/tC_bots.js
 texpacks/tC_corpse.js
 
+# Tingle Craft: the Backrooms and the Machines register five and four tiles at
+# load, so they sit here — after purgatory's pinned tile slots (222-284) and
+# before the Hyperreal model loaders (the hrLoadModels extraction in
+# tests/texpacks/tC_real.js must never see their top-level B.* assignments)
+backrooms/br0_backrooms.js
+machines/mc0_machines.js
+
 # PART 57 HR block + Hyperreal model loaders
 malgorath/hr/m4_a_core.js
 malgorath/hr/m4_b_grade.js
@@ -214,5 +222,4 @@ texpacks/models/pg_blank.js
 texpacks/loaders/pcast_close.js
 
 # export branch + boot
-backrooms/br0_backrooms.js
 boot/export_boot.js

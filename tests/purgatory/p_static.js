@@ -28,7 +28,7 @@ boot.run(async()=>{
   ok('46 purgatory blocks, exactly the planned ids (all < 256, none in 212-219)',JSON.stringify(pgB)===JSON.stringify(BLK.slice().sort((a,b)=>a-b))&&pgB.every(i=>i<256&&(i<212||i>219)));
   ok('75 purgatory items, exactly the planned ids (285-361 minus 309, 339)',JSON.stringify(pgI)===JSON.stringify(ITM));
   ok('souvenirs 362-364 exist and are overworld items (no pg)',[362,363,364].every(i=>DEFS[i]&&DEFS[i].item&&!DEFS[i].pg));
-  ok('spare ids 248, 249, 309, 339 stay unused',[248,249,309,339].every(i=>!DEFS[i]));
+  ok('spare ids 309, 339 stay unused (248 and 249 were claimed by the v7.1 Steam Engine and Conveyor Belt — the last two block ids the ledger ever had free)',[309,339].every(i=>!DEFS[i]));
   const bk=Object.keys(B).filter(k=>/^PG_/.test(k)),ik=Object.keys(IT).filter(k=>/^PG_/.test(k));
   ok('B.PG_* names the 46 blocks and IT.PG_* the 78 items',bk.length===46&&ik.length===78&&bk.every(k=>BLK.includes(B[k]))&&ik.every(k=>DEFS[IT[k]]&&DEFS[IT[k]].item));
   const fx=JSON.parse(fs.readFileSync(boot.FIX+'v60_defs.json','utf8')).defs;
@@ -119,7 +119,7 @@ boot.run(async()=>{
 
   /* ---- recipes ---- */
   /* v6.2 (lead, the creativity plan 3.5): the Creativity Update appends CR_RECIPE_N overworld recipes */
-  ok('RECIPES still holds 99 overworld recipes (98 + the Tingle Craft Exit Door) (+ '+(V.CR_RECIPE_N|0)+' v6.2 creativity recipes) and no purgatory id',V.RECIPES.length===99+(V.CR_RECIPE_N|0)&&V.RECIPES.every(r=>![r.o,...(r.s||[]),...Object.values(r.k||{})].some(x=>typeof x==='number'&&DEFS[x]&&DEFS[x].pg)));
+  ok('RECIPES still holds 101 overworld recipes (99 + the two v7.1 machines) (+ '+(V.CR_RECIPE_N|0)+' v6.2 creativity recipes) and no purgatory id',V.RECIPES.length===101+(V.CR_RECIPE_N|0)&&V.RECIPES.every(r=>![r.o,...(r.s||[]),...Object.values(r.k||{})].some(x=>typeof x==='number'&&DEFS[x]&&DEFS[x].pg)));
   {const g=[{id:B.LOG_O,count:1},null,null,null];const r=V.calcCraft(g,2);ok('calcCraft(grid,w) unchanged (a log makes 4 oak planks)',r&&r.id===B.PLANK_O&&r.count===4);}
 
   /* ---- sizes and caps ---- */

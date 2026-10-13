@@ -3,7 +3,16 @@
    frozen core suite keep working, but players never see it. PATCH_LOG still feeds CHANGELOG.md (scripts/changelog.mjs)
    and the release tooling. Data-driven off GAME_VERSION so it can't drift from the shipped build. */
 const PATCH_LOG=[
- {v:GAME_VERSION,label:RELEASE_LABEL,title:'Tingle Craft: The Multiplayer Update',lines:[
+ {v:GAME_VERSION,label:RELEASE_LABEL,title:'Sync and Steam',lines:[
+    'MULTIPLAYER, IN SYNC: the server owns the clock — everyone shares one day/night. The item you hold shows in your hand for other players. Mobs are now shared too: the server spawns and relays them, one client simulates each mob, and they chase (and hit) every player nearby.',
+    'ADMIN ONLY: the F3 debug screen and the Debug Menu are admin-only while playing multiplayer. Singleplayer is unchanged.',
+    'SERVER GUIs: /shop opens a proper shop window (pick an item, pick a count, Buy). /sell opens a sell menu that pays for loot — or one Sell-everything button. /homes opens a homes menu: set home here, go, delete (5 homes, 10 for admins). All three also sit in the pause menu while playing multiplayer.',
+    'ADMIN PANEL: admins get a Server Admin button — set any player balance, +DB, kick, ban, op/deop, bring a player to you or go to them, set the time (day/noon/night/midnight), set spawn here, toggle mob spawning, set the MOTD, save the server.',
+    'REVERSE PROXY FRIENDLY: connect with ws://host:port/path or wss://host/path — any path works, so nginx/caddy can front the server. Plain HTTP checks get a friendly answer. See docs/MULTIPLAYER.md for ready-made configs.',
+    'MACHINES (a Create-flavoured pack): Steam Engine (right-click, feed it coal or planks; it puffs smoke and powers every belt within 3 blocks) and the Conveyor Belt (carries drops, mobs and you along its axis; belts line up with their neighbours). Belts beside a burning FURNACE become a heated section: drops that ride over it get smelted — ore in one end, ingots out the other. Craft them from iron and cobble, or buy them in the server shop.',
+    'PLUS: keepalive pings both ways so dead tabs drop cleanly, balances and homes refresh live in the open menus, and mob kills pay the shooter a DB bounty with loot dropped straight into their pack.',
+  ]},
+ {v:'7.0',label:'Release 1.1',title:'Tingle Craft: The Multiplayer Update',lines:[
     'Tingle Craft is here: this build of the game continues as Tingle Craft, based on DingleCraft — full credit to the original.',
     'MULTIPLAYER: a Multiplayer button on the title screen. Add servers (name + address) like a certain block game, direct connect, and join.',
     'server.py ships in the repo: a dependency-free Python multiplayer server. Run "python server.py --admin YourName" and it writes server_data/.',

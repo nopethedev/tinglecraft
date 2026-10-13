@@ -184,6 +184,14 @@ function spawnMob(mt,x,y,z){
   }
 }
 function hurtMob(e,dmg,kx,kz){
+  if(e.netmid!=null){                       /* server-relayed mob */
+    if(!e.netown){                          /* simulated elsewhere: report, flash locally */
+      e.hurtT=0.3;
+      for(const m of e.mats)m.emissive&&m.emissive.setRGB(0.45,0,0);
+      netSend({t:'mobhit',mid:e.netmid,dmg:Math.max(1,Math.round(dmg))});
+      return;
+    }
+  }
   if(e.bot){agHurt(e.A,dmg,HIT_BY||'Dan',kx,kz,HIT_HOW||'melee');return;}
   if(MOBT[e.mt].mg){dmg=mgPreHurt(e,dmg,kx,kz);if(dmg<0)return;}
   if(MOBT[e.mt].pmob){dmg=mpPreHurt(e,dmg,kx,kz);if(dmg<0)return;}
@@ -203,6 +211,7 @@ function hurtMob(e,dmg,kx,kz){
 }
 function killMob(e){
   const T=MOBT[e.mt];
+  if(e.netmid!=null&&e.netown)netSend({t:'mobdead',mid:e.netmid});   /* natural death: tell the broker */
   if(e.blockId)spawnDrop(e.x,e.y+0.4,e.z,{id:e.blockId,count:1},0,2,0);
   if(e.mt==='snake'&&e.segs&&e.segs.length)
     spawnDrop(e.x,e.y+0.4,e.z,{id:IT.APPLE,count:Math.min(8,e.segs.length)},0,2,0);
@@ -230,6 +239,7 @@ function updateMob(e,dt){
   e.hurtT=Math.max(0,e.hurtT-dt);
   if(e.hurtT<0.2)for(const m of e.mats)m.emissive&&m.emissive.setRGB(0,0,0);
   e.atkT=Math.max(0,e.atkT-dt);if(e.hrM)e._a0=e.atkT;
+  if(e.netmid!=null&&!e.netown)return netMobLerp(e,dt);   /* relayed mob, simulated on another client */
   if(GR.freezeMobs){e.vx=e.vy=e.vz=0;e.mesh.position.set(e.x,e.y,e.z);return;} /* held in place until the rule is off */
   if(T.pmob&&PREG.brain[e.mt])return mpBrain(e,dt,T);
   if(T.mg)return mgBrain(e,dt,T);
@@ -252,7 +262,21 @@ function updateMob(e,dt){
   if(e.mt==='alien')alienBrain(e,dt,pd,pdx,pdz);
   const hostileNow=e.mt==='alien'?e.mood==='h':T.hostile;
   const _tb=hostileNow?mobBotTarget(e,T,pd):null;
-  const tdx=_tb?_tb.x-e.x:pdx,tdz=_tb?_tb.z-e.z:pdz,td=_tb?Math.hypot(tdx,tdz):pd,tty=_tb?_tb.y:P.y;
+  /* an owned relayed mob also hunts other players' bodies (their client gets
+     told over the wire when a blow lands) */
+  let nrt=null;
+  if(e.netown&&hostileNow&&NET.on&&NET.remotes.size){
+    let bd=pd;
+    for(const [nm,r] of NET.remotes){
+      if(r.dim!==DIM)continue;
+      const d=Math.hypot(r.tx-e.x,r.tz-e.z);
+      if(d<bd){bd=d;nrt=nm;}
+    }
+  }
+  e.netT=nrt;
+  const NR=nrt?NET.remotes.get(nrt):null;
+  const tdx=NR?NR.tx-e.x:(_tb?_tb.x-e.x:pdx),tdz=NR?NR.tz-e.z:(_tb?_tb.z-e.z:pdz),
+        td=NR?Math.hypot(tdx,tdz):(_tb?Math.hypot(tdx,tdz):pd),tty=NR?NR.ty:(_tb?_tb.y:P.y);
   const aggro=hostileNow&&(_tb||(!P.dead&&(P.mode!=='c'||T.nuke)))&&td<(T.boss?26:(T.nuke?22:16))&&(!T.nightOnly||!sunUp()||e.mode==='chase');
   if(aggro)e.mode='chase';
   else if(e.mode==='chase')e.mode='idle';
@@ -274,6 +298,7 @@ function updateMob(e,dt){
     if(T.dmg&&td<(T.boss?2.4:1.7)&&Math.abs(tty-e.y)<(T.boss?3:2)&&e.atkT<=0){
       e.atkT=T.boss?1.4:1.1;
       if(_tb)mobHitBot(_tb,e,T,T.dmg,tdx,tdz);
+      else if(NR)netSend({t:'mobhitp',mid:e.netmid,name:nrt,dmg:T.dmg});   /* the target's client applies it */
       else{LASTDMG={by:mobNameOf(e.mt),how:'mob',t:AG_T};damagePlayer(T.dmg,pdx,pdz);
       if(T.boss&&!P.dead){P.vy=Math.max(P.vy,9.5);playS('thud');}}
     }

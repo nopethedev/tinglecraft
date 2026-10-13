@@ -15,6 +15,7 @@ function torchNear(x,y,z){
   return false;
 }
 function mobsTick(dt){
+  if(NET.on)return;   /* in multiplayer the server's mob broker does the spawning */
   spawnT-=dt;
   if(spawnT>0)return;
   spawnT=1.4;

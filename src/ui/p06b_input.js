@@ -64,7 +64,9 @@ function setupInput(){
       else if(!paused&&!P.dead)openModal(P.mode==='c'?'creative':'inv');
     }
     if(e.code==='KeyQ'&&!modalOpen()&&!paused)dropSel(KEY.ControlLeft);
-    if(e.code==='F3'){e.preventDefault();debugOn=!debugOn;}
+    if(e.code==='F3'){e.preventDefault();
+      if(typeof NET!=='undefined'&&NET.on&&!NET.admin){showToast('The debug screen is admin-only on this server.');}
+      else debugOn=!debugOn;}
     if(e.code==='KeyR'&&MODAL.kind==='inv')sortInv();
     if(e.code==='KeyP'&&playing&&!P.dead&&!paused){if(powOpen)closePow();else if(!modalOpen())openPow();}
     if(e.code==='Escape'){
@@ -74,6 +76,10 @@ function setupInput(){
       else if(presOn)presClose();
       else if(pguOn)pguClose();
       else if(patchOpen)closePatch();
+      else if(shopOpen)closeShop();
+      else if(sellOpen)closeSell();
+      else if(homesOpen)closeHomes();
+      else if(admOpen)closeAdm();
       else if(dbgmOpen)closeDbgm();
       else if(setOpen)closeSet();
       else if(cmpOpen)closeCmp();

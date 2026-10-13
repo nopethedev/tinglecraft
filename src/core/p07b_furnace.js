@@ -4,6 +4,7 @@ function furnaceTick(dt){
     if(be.t!=='furnace')continue;
     const out=be.in?SMELT[be.in.id]:undefined;
     const can=out!==undefined&&(!be.out||(be.out.id===out&&be.out.count<stackMax(out)));
+    const was=be.burn>0;
     if(be.burn>0)be.burn=Math.max(0,be.burn-dt);
     if(can){
       if(be.burn<=0&&be.fuel&&FUELS[be.fuel.id]){
@@ -20,6 +21,8 @@ function furnaceTick(dt){
         }
       }else be.cook=Math.max(0,be.cook-dt*2);
     }else be.cook=Math.max(0,be.cook-dt*2);
+    /* relay the flame in multiplayer so heated conveyor lines agree everywhere */
+    if(was!==(be.burn>0)&&typeof mcSync==='function'&&typeof be._k==='string')mcSync(be._k,be);
   }
 }
 

@@ -17,6 +17,7 @@ dom/title.html
 dom/menus.html
 dom/replay.html
 dom/panels_b.html
+dom/mp2.html
 dom/help.html
 dom/ext_panels.html
 dom/patch.html

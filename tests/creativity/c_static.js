@@ -28,7 +28,7 @@ boot.run(async()=>{
   ok('easel: solid, not opaque, cut bucket, cross icon, crm easel; painting cell: not solid, hidden, drops nothing, crm paint',
     D[213].solid!==false&&!D[213].opq&&D[213].bucket==='cut'&&D[213].cross&&D[213].crm==='easel'&&
     D[216].solid===false&&!D[216].opq&&D[216].hide&&D[216].drop===null&&D[216].crm==='paint'&&!D[214].hide&&!D[215].hide);
-  ok('248, 249 (purgatory spares) stay undefined; 212, 217-219 are now the Backrooms blocks (Tingle Craft)',[248,249].every(i=>!D[i])&&[212,217,218,219].every(i=>D[i]));
+  ok('248, 249 are the v7.1 Steam Engine and Conveyor Belt; 212, 217-219 are the Backrooms blocks (Tingle Craft)',[248,249].every(i=>!!D[i])&&[212,217,218,219].every(i=>D[i]));
   ok('every block id < 256 is now taken except 248, 249 (the Backrooms took the four creativity spares)',(()=>{for(let i=1;i<256;i++)if(!D[i]&&![248,249].includes(i))return false;return true;})());
   const bandUsed=Object.keys(D).map(Number).filter(i=>i>CRC.ID0&&i<=CRC.ID0+CRC.MAXN);
   ok('the work-id band '+(CRC.ID0+1)+'-'+(CRC.ID0+CRC.MAXN)+' holds no static def (works are synthesised at runtime)',bandUsed.length===0&&Object.keys(D).map(Number).every(i=>i<CRC.ID0||i>CRC.ID0+CRC.MAXN));
@@ -40,7 +40,7 @@ boot.run(async()=>{
 
   /* ---- tiles (plan 2.3) ---- */
   const T=V.CR_TILES;
-  ok('13 tiles, registered at boot right after the last PART tile (slot '+I.tile0+' = after the Backrooms tiles 285-289)',T.length===13&&I.tile0===290&&
+  ok('13 tiles, registered at boot right after the last PART tile (slot '+I.tile0+' = after the Backrooms tiles 285-289 and the v7.1 machine tiles 290-293)',T.length===13&&I.tile0===294&&
     T.every((n,i)=>C.Tl[n]===I.tile0+i)&&C.tn===I.tile0+T.length&&C.tn<=C.ATLAS*C.ATLAS);
   const badT=[];for(const i of [213,214,215,216]){const t=D[i].tiles,ns=typeof t==='string'?[t]:[t.top,t.side,t.bot];for(const n of ns)if(C.Tl[n]===undefined||!/^cr_/.test(n))badT.push(i+':'+n);
     if(!D[i]._t)badT.push(i+':_t');}
@@ -49,7 +49,7 @@ boot.run(async()=>{
 
   /* ---- recipes (plan 2.4) ---- */
   const R=V.RECIPES,N=V.CR_RECIPE_N;
-  ok('3 creativity recipes appended to RECIPES (99 overworld + 3, then the Tingle Craft Exit Door last)',N===3&&R.length===102&&R.slice(98,101).map(r=>r.o).join()==='213,214,215'&&R[101].o===219);
+  ok('3 creativity recipes appended to RECIPES (99 overworld + 3, the Tingle Craft Exit Door, then the two v7.1 machines last)',N===3&&R.length===104&&R.slice(98,101).map(r=>r.o).join()==='213,214,215'&&R[101].o===219&&R.slice(102).map(r=>r.o).join()==='248,249');
   const firstOf=v=>typeof v==='string'?V.GROUPS[v][0]:v;
   const gridOf=r=>{const g=Array(9).fill(null);if(r.p){r.p.forEach((row,y)=>[...row].forEach((ch,x)=>{if(ch!==' ')g[y*3+x]={id:firstOf(r.k[ch]),count:1};}));}
     else r.s.forEach((v,i)=>{g[i]={id:firstOf(v),count:1};});return g;};

@@ -1,0 +1,61 @@
+<!-- Tingle Craft multiplayer GUIs: shop / sell / homes / admin.
+     Opened from the pause menu buttons (shown in multiplayer only) or
+     via /shop /sell /homes /admin. Styled by css/mp.css. -->
+<div id="mpshop" class="ovl"><div class="panel mpg">
+  <h2>🛒 Server Shop</h2>
+  <div class="mpg-top"><span id="mpshop_bal" class="mpg-bal">0 DB</span>
+    <button id="mpshop_close" class="mc-btn small">✕</button></div>
+  <div id="mpshop_sel" class="mpg-selbar">
+    <span id="mpshop_item" class="mpg-item">Pick an item</span>
+    <button id="mpshop_minus" class="mc-btn small mpg-cnt">−</button>
+    <span id="mpshop_count" class="mpg-cntv">1</span>
+    <button id="mpshop_plus" class="mc-btn small mpg-cnt">+</button>
+    <span id="mpshop_cost" class="mpg-cost">—</span>
+    <button id="mpshop_buy" class="mc-btn tgo mpg-buy">Buy</button>
+  </div>
+  <div id="mpshop_list" class="mpg-list"></div>
+</div></div>
+
+<div id="mpsell" class="ovl"><div class="panel mpg">
+  <h2>💰 Sell Loot</h2>
+  <div class="mpg-top"><span id="mpsell_bal" class="mpg-bal">0 DB</span>
+    <button id="mpsell_all" class="mc-btn small">Sell everything</button>
+    <button id="mpsell_close" class="mc-btn small">✕</button></div>
+  <div id="mpsell_list" class="mpg-list"></div>
+  <div class="mpg-note">The server pays from its own price list — values here are what you get per item.</div>
+</div></div>
+
+<div id="mphomes" class="ovl"><div class="panel mpg">
+  <h2>🏠 Homes</h2>
+  <div class="mpg-top"><span class="mpg-bal" id="mphomes_count"></span>
+    <button id="mphomes_close" class="mc-btn small">✕</button></div>
+  <div id="mphomes_list" class="mpg-list"></div>
+  <div class="mpg-selbar">
+    <input id="mphomes_name" class="mc-in" maxlength="24" placeholder="home name (e.g. base)">
+    <button id="mphomes_set" class="mc-btn tgo">Set home here</button>
+  </div>
+</div></div>
+
+<div id="mpadm" class="ovl"><div class="panel mpg" style="max-width:560px">
+  <h2>🛠 Server Admin</h2>
+  <div class="mpg-top"><span class="mpg-bal" id="mpadm_state"></span>
+    <button id="mpadm_close" class="mc-btn small">✕</button></div>
+  <div class="mlabel">Players online</div>
+  <div id="mpadm_list" class="mpg-list"></div>
+  <div class="mlabel">Server</div>
+  <div class="mpg-admrow">
+    <button class="mc-btn small" data-time="day">☀ Day</button>
+    <button class="mc-btn small" data-time="noon">Noon</button>
+    <button class="mc-btn small" data-time="night">☾ Night</button>
+    <button class="mc-btn small" data-time="midnight">Midnight</button>
+  </div>
+  <div class="mpg-admrow">
+    <button id="mpadm_spawn" class="mc-btn small">Set spawn here</button>
+    <button id="mpadm_mobs" class="mc-btn small">Mobs: On</button>
+    <button id="mpadm_save" class="mc-btn small">Save now</button>
+  </div>
+  <div class="mpg-admrow">
+    <input id="mpadm_motd" class="mc-in" maxlength="120" placeholder="message of the day">
+    <button id="mpadm_motdset" class="mc-btn small">Set MOTD</button>
+  </div>
+</div></div>

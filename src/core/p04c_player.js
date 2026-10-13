@@ -78,9 +78,11 @@ function ensureBE(x,y,z,t){
   if(be&&CR_BET[be.t]){crOrphan(k,be,'reuse');be=null;}
   if(!be){
     be=t==='furnace'?{t:'furnace',in:null,fuel:null,out:null,burn:0,burnMax:0,cook:0}
+      :t==='engine'?{t:'engine',fuel:null,burn:0,burnMax:0}
       :t==='terr'?{t:'terr',terr:null}
       :t==='disp'?{t:'disp',fig:null}
                     :{t:'chest',inv:Array(27).fill(null)};
+    be._k=k;
     blockEnts.set(k,be);
   }
   return be;
