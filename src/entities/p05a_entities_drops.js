@@ -85,7 +85,9 @@ function updateDrop(e,dt){
     if(ds<0.75){
       const before=e.st.count,left=invAddTo(P.inv,e.st);   /* invAddTo shrinks e.st as it goes: compare with the count from before */
       if(left<before){playS('pop');redrawHotbar();}
-      if(e.st.count<=0){removeEnt(e);return;}
+      if(e.st.count<=0){
+        if(e.netdid&&typeof netDropRelease==='function')netDropRelease(e.netdid);
+        removeEnt(e);return;}
     }
   }
   if(AG_ACTIVE&&agTryPickup(e))return;

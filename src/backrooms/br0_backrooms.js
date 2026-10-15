@@ -48,7 +48,7 @@ function genChunkBackrooms(cx,cz){
   /* level 0 keeps the classic maze byte-for-byte; deeper levels live 400
      chunks out along the x axis and dispatch to br1_levels.js */
   if(cx>=400&&typeof brGenLevel==='function')return brGenLevel(cx,cz);
-  const blocks=new Uint8Array(CH*WH*CH);
+  const blocks=new Uint16Array(CH*WH*CH);
   const x0=cx*CH,z0=cz*CH;
   for(let lx=0;lx<CH;lx++)for(let lz=0;lz<CH;lz++){
     const wx=x0+lx,wz=z0+lz;

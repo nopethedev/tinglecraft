@@ -271,6 +271,46 @@ def run(port, data_dir):
     got = ws.wait_for("set", pred=lambda m: m.get("lk") == "4,40,5")
     ok(got is not None and got.get("id") == 27, "block edit relays to other players")
 
+    # ---- u16 block edits (the v7.3 Create blocks live at 376+) ----------
+    pws.send({"t": "set", "ck": "3,2", "lk": "4,41,5", "id": 384})
+    got = ws.wait_for("set", pred=lambda m: m.get("lk") == "4,41,5")
+    ok(got is not None and got.get("id") == 384, "u16 block edit (id 384) relays intact")
+
+    # ---- thrown items go server-wide (dropadd/dropdel) -------------------
+    pws.send({"t": "dropadd", "did": "steve-1", "id": 104, "count": 3,
+              "x": 10.5, "y": 41.0, "z": 12.5, "vx": 1.0, "vy": 2.0, "vz": 0.0})
+    got = ws.wait_for("dropadd", pred=lambda m: m.get("did") == "steve-1")
+    ok(got is not None and got.get("id") == 104 and got.get("count") == 3,
+       "a thrown drop relays to everyone else")
+    pws.send({"t": "dropdel", "did": "steve-1"})
+    got = ws.wait_for("dropdel", pred=lambda m: m.get("did") == "steve-1")
+    ok(got is not None, "picking a relayed drop up removes it for everyone")
+
+    # ---- the Big Dingle is now everyone's problem (nukex) -----------------
+    pws.send({"t": "nukex", "x": 500, "y": 40, "z": -500, "dim": 0})
+    got = ws.wait_for("nukex")
+    ok(got is not None and got.get("x") == 500, "a nuke detonation relays")
+    pws.close()
+    pws = WS(port)
+    pws.send({"t": "login", "name": "Steve", "pass": "pass1"})
+    pw2b = pws.wait_for("welcome")
+    ok(pw2b is not None and isinstance(pw2b.get("nukes"), list) and
+       any(n[0] == 500 and n[3] == 0 for n in pw2b["nukes"]),
+       "the crater history survives a rejoin (welcome carries nukes)")
+
+    # ---- the shop now sells the Create pack -------------------------------
+    ok(any(i.get("id") == 376 for i in pw2b.get("shop", [])) and
+       any(i.get("id") == 381 for i in pw2b.get("shop", [])),
+       "the shop sells andesite and the press")
+
+    # ---- admins assemble huge ships; payloads over 60k are admin-only ------
+    big_d = "A" * 65000
+    ws.send({"t": "shipadd", "sid": "admship1", "d": big_d, "x": 5.0, "y": 40.0,
+             "z": 5.0, "yaw": 0.0})
+    got = pws.wait_for("shipadd", pred=lambda m: m.get("sid") == "admship1")
+    ok(got is not None and len(got.get("d", "")) == 65000,
+       "an admin ship payload over 60k relays")
+
     # ---- held item relay ------------------------------------------------
     pws.send({"t": "pos", "x": 10.5, "y": 41, "z": 12.5, "yaw": 1, "pitch": 0,
               "dim": "over", "hp": 20, "held": 27})

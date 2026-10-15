@@ -57,7 +57,7 @@ function nCol(x,z){
   return c;
 }
 function genChunkNether(cx,cz){
-  const blocks=new Uint8Array(CH*WH*CH);
+  const blocks=new Uint16Array(CH*WH*CH);
   const x0=cx*CH,z0=cz*CH;
   for(let lx=0;lx<CH;lx++)for(let lz=0;lz<CH;lz++){
     const wx=x0+lx,wz=z0+lz;
@@ -125,7 +125,7 @@ function aCol(x,z){
   return out;
 }
 function genChunkAether(cx,cz){
-  const blocks=new Uint8Array(CH*WH*CH);
+  const blocks=new Uint16Array(CH*WH*CH);
   const x0=cx*CH,z0=cz*CH;
   for(let lx=0;lx<CH;lx++)for(let lz=0;lz<CH;lz++){
     const wx=x0+lx,wz=z0+lz;

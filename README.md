@@ -3,8 +3,8 @@
 **Tingle Craft** is a fan-made, Minecraft-style voxel sandbox that ships as **one HTML file** — and it is built on
 **DINGLECRAFT**, the original one-file voxel sandbox by **Dan Dingle** ([dandingle.store/dinglecraft](https://dandingle.store/dinglecraft)).
 All of the original game's code, art and ideas are his: this fork continues his work with full credit, and adds
-**multiplayer** (with a Python server), **The Backrooms** dimension, **machines** (steam engines and conveyor
-belts) and **mobile touch polish**.
+**multiplayer** (with a Python server), **The Backrooms** dimension, a **Create-flavoured factory pack**, 
+**WorldEdit + litematic/schematic loading**, buildable **ships**, **guns** and **mobile touch polish**.
 
 > Tingle Craft and DINGLECRAFT are independent fan-made games. NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR
 > ASSOCIATED WITH MOJANG OR MICROSOFT. Other names belong to their owners.
@@ -81,12 +81,39 @@ Hover any item in any inventory to see what it does.
 
 ### Machines (a Create-flavoured pack)
 
-- **Steam Engine** — right-click it and feed it coal or planks. While it burns it puffs smoke and powers every
-  conveyor belt within 3 blocks.
-- **Conveyor Belt** — carries drops, mobs and you along its axis while powered; belts line up with their
-  neighbours. A belt next to a **burning furnace** is a heated section: drops that ride over it get smelted —
-  ore in one end, ingots out the other.
-- Craft them (iron + furnace + cobble; iron for belts), or buy them in the server shop.
+- **Kinetic power** — machine blocks that touch form a network. A burning **Steam Engine** supplies 256, a
+  **Water Wheel** sitting in water supplies 128, a spinning **Windmill Bearing** supplies 32 per sail (six or
+  more sails to start it). Cogwheels and shafts carry power across the network; belts no longer need an engine
+  in arm's reach.
+- **Mechanical Press** — stomps the gap under itself every 1.4 s: iron into iron sheets, gold into gold sheets,
+  sand into sandstone, clay into bricks.
+- **Millstone** — grinds drops on top of it: cobble to gravel, gravel to sand, wheat into flour (flour bakes
+  into bread), logs into planks.
+- **Mechanical Mixer + Basin** — washes drops on an adjacent basin: gravel becomes sand, with iron panning out
+  now and then.
+- **Brass Funnel / Chute** — funnels file the drops on top of them into the container below (chest, vault,
+  furnace, engine); chutes drop items straight down their column.
+- **Item Vault** — a 54-slot chest. **Depot** — a stable pedestal for pressing. **Iron Grate / Industrial Iron /
+  Andesite / Andesite Casing / Fluid Tank** — the builder's kit.
+- **Conveyor Belt** — carries drops, mobs and you along its axis while powered; belts next to a **burning
+  furnace** become a heated section: ore rides in one end, ingots out the other.
+- Everything craftable and in the **Create** creative tab and the server shop. Andesite veins the stone now.
+
+### WorldEdit & schematics
+
+The classic builder kit lives on the **double slash**: `//help` lists the commands — `//wand`, `//pos1`,
+`//pos2`, `//hpos1`, `//hpos2`, `//set`, `//replace`, `//walls`, `//outline`, `//count`, `//size`, `//expand`,
+`//contract`, `//shift`, `//copy`, `//cut`, `//paste`, `//undo`, `//redo`, `//limit`. The **wand** is a
+craftable item (left-click = position 1, right-click = position 2). Block names accept the game's names, ids
+and the usual Minecraft names. The pause menu's **Schematics** button (or `//schem`) loads `.litematic`,
+Sponge `.schem` and legacy `.schematic` files and pastes them at your feet as real blocks — unknown blocks land
+as cobblestone, and pastes are undoable. In multiplayer WorldEdit is admin-only.
+
+### The wilds, dressed
+
+Five new overworld structures, deterministic from the seed: **desert pyramids** (a tomb, a chest, a TNT
+surprise), **igloos** (furnace included), **ruined watchtowers**, **glowstone-capped stone circles** and
+**shipwrecks** beached or sunk. Bedrock has a ragged four-layer shoulder now — dig accordingly.
 
 ### Mobile
 
@@ -100,7 +127,12 @@ A dimension of mono-yellow rooms, damp carpet and the hum of fluorescent lights 
 **Twenty-two levels**: fall through a hole in the floor to noclip deeper (the Lobby, Pipe Dreams, the Terror
 Hotel, Lights Out, Thalassophobia, the Cave System, the Suburbs, the Field of Wheat, the Endless City, the
 Matrix, Paradise, the Flooded Halls, the Carrier, the Attic, the Warehouse...), rare **Exit Doors** climb back
-up, and level 0's door still leaves for good (rarer now, as it should be). **Level 21 is the Poolrooms**;
+up, and level 0's door still leaves for good (rarer now, as it should be). Every level now wears its true
+materials: stained wallpaper and buzzing light panels in the Lobby, concrete and supply crates in the Habitable
+Zone, pipe-lined tunnels in Pipe Dreams, drywall desks in the Abandoned Office, red carpet and numbered doors
+in the Terror Hotel, pitch-black metal in Lights Out, glass-windowed towers in the Endless City, green code on
+the Matrix's walls, crates to the ceiling in the Warehouse, and white tile with skylights and pools of every
+depth in the Poolrooms. **Level 21 is the Poolrooms**;
 **level 22 is The Exit** — a small bright room whose door takes you home. Admins jump anywhere:
 `/backrooms 1-20` (also `pool`, `exit`). Leaving no longer NaNs you into the void: where you noclipped in is
 where you come out. Do not noclip on purpose.

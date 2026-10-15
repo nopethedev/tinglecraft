@@ -52,6 +52,8 @@ function wireMenus(){
   $('p_export').onclick=exportWorld;
   $('p_quit').onclick=quitToTitle;
   $('p_help').onclick=()=>{hidePause();openHelp();};
+  {const sb=$('p_schem');
+   if(sb)sb.onclick=()=>{hidePause();weOpenSchem();};}
   $('d_respawn').onclick=()=>{respawn();$('death').style.display='none';tryLock();};
   $('d_title').onclick=quitToTitle;
   uiBoot();   /* the UI scale (p06e) */

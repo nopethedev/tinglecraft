@@ -48,22 +48,35 @@ R(['PSP','SDS','PPP'],{P:B.PLANK_O,S:IT.STICK,D:IT.DIAMOND},IT.HELM,1);
 
 /* ------------------------------------------------------------------ ships */
 const SHIP_MAX=1400,SHIP_MIN=25;
+/* admins assemble anything: no block restrictions, no minimum, and a much
+   bigger cap (server.py raises its payload cap to match) */
+function shipAdm(){
+  return typeof NET!=='undefined'&&NET.on&&NET.admin;
+}
+function shipCaps(){
+  return shipAdm()?{min:0,max:30000,bx:64,by:32,bz:64}
+                 :{min:SHIP_MIN,max:SHIP_MAX,bx:26,by:14,bz:26};
+}
 function shipBlockOk(id){
   const d=DEFS[id];
   if(!d||d.item)return false;
+  if(shipAdm())return id!==B.AIR;
   if(id===B.GLASS||id===B.BGLASS||id===B.WOOL||id===B.CHEST||id===B.FURNACE)return true;
   if(d.door)return true;
   return d.toolClass==='axe';    /* planks, logs, and anything else wooden */
 }
-/* pack: u16 count, then per voxel i16 dx, i8 dy(+80), i16 dz, u8 id */
+/* pack. v1 (legacy): u16 count, then per voxel i16 dx, i8 dy(+80), i16 dz,
+   u8 id. v2 (0xA7 magic): same but u16 ids, so Create blocks (300+) and
+   friends can sail. Old ships still decode. */
 function shipPack(vox){
-  const b=new Uint8Array(2+vox.size*6);
-  b[0]=vox.size&255;b[1]=(vox.size>>8)&255;
-  let i=2;
+  const b=new Uint8Array(3+vox.size*7);
+  b[0]=0xA7;
+  b[1]=vox.size&255;b[2]=(vox.size>>8)&255;
+  let i=3;
   const w16=v=>{const u=v<0?v+65536:v;b[i]=u&255;b[i+1]=(u>>8)&255;i+=2;};
   for(const [k,id] of vox){
     const p=k.split(',');
-    w16(+p[0]);b[i++]=(+p[1])+80;w16(+p[2]);b[i++]=id;
+    w16(+p[0]);b[i++]=(+p[1])+80;w16(+p[2]);w16(id);
   }
   return b64enc(b);
 }
@@ -71,13 +84,30 @@ function shipUnpack(s){
   let b=null;
   try{b=b64bytes(s);}catch(e){return null;}
   if(!b||b.length<2)return null;
+  const r16=(i)=>{let v=b[i]|(b[i+1]<<8);return v>=32768?v-65536:v;};
+  if(b[0]===0xA7){
+    const n=b[1]|(b[2]<<8);
+    if(b.length<3+n*7)return null;
+    const vox=new Map();
+    let i=3;
+    for(let k=0;k<n;k++){
+      const dx=r16(i);i+=2;
+      const dy=b[i++]-80;
+      const dz=r16(i);i+=2;
+      const id=b[i]|(b[i+1]<<8);i+=2;
+      vox.set(dx+','+dy+','+dz,id);
+    }
+    return vox;
+  }
   const n=b[0]|(b[1]<<8);
   if(b.length<2+n*6)return null;
   const vox=new Map();
   let i=2;
-  const r16=()=>{let v=b[i]|(b[i+1]<<8);i+=2;return v>=32768?v-65536:v;};
   for(let k=0;k<n;k++){
-    const dx=r16(),dy=b[i++]-80,dz=r16(),id=b[i++];
+    const dx=r16(i);i+=2;
+    const dy=b[i++]-80;
+    const dz=r16(i);i+=2;
+    const id=b[i++];
     vox.set(dx+','+dy+','+dz,id);
   }
   return vox;
@@ -143,9 +173,11 @@ function pickShip(ox,oy,oz,dx,dy,dz,max){
 function shipAssemble(st,hit){
   if(!playing||!P||!hit)return true;
   if(DIM!=='over'){showToast('The magic only works on the open sea (overworld).');return true;}
+  const cap=shipCaps();
   const sx=hit.x,sy=hit.y,sz=hit.z;
   if(!shipBlockOk(getBlock(sx,sy,sz))){
-    showToast('Aim the helm at the ship itself — planks, logs, glass, wool...');
+    if(shipAdm())showToast('Aim the helm at the structure itself.');
+    else showToast('Aim the helm at the ship itself — planks, logs, glass, wool...');
     return true;
   }
   /* flood fill the connected ship blocks */
@@ -153,13 +185,13 @@ function shipAssemble(st,hit){
   vox.set('0,0,0',getBlock(sx,sy,sz));
   let over=false;
   while(q.length){
-    if(vox.size>SHIP_MAX){over=true;break;}
+    if(vox.size>cap.max){over=true;break;}
     const [cx2,cy2,cz2]=q.pop();
     const dx0=cx2-sx,dy0=cy2-sy,dz0=cz2-sz;
     for(const [ddx,ddy,ddz] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){
       const nx=cx2+ddx,ny=cy2+ddy,nz=cz2+ddz;
       const rx=nx-sx,ry=ny-sy,rz=nz-sz;
-      if(Math.abs(rx)>26||Math.abs(ry)>14||Math.abs(rz)>26)continue;
+      if(Math.abs(rx)>cap.bx||Math.abs(ry)>cap.by||Math.abs(rz)>cap.bz)continue;
       const k=rx+','+ry+','+rz;
       if(vox.has(k))continue;
       const id=getBlock(nx,ny,nz);
@@ -168,8 +200,8 @@ function shipAssemble(st,hit){
       q.push([nx,ny,nz]);
     }
   }
-  if(over){showToast('Too grand for one helm — keep it under '+SHIP_MAX+' blocks.');return true;}
-  if(vox.size<SHIP_MIN){showToast('That is not ship-shaped yet: '+vox.size+'/'+SHIP_MIN+' ship blocks.');return true;}
+  if(over){showToast('Too grand for one helm — keep it under '+cap.max+' blocks.');return true;}
+  if(vox.size<cap.min){showToast('That is not ship-shaped yet: '+vox.size+'/'+cap.min+' ship blocks.');return true;}
   /* drink the structure out of the world (edits stream as one batch) */
   for(const [k,id] of vox){
     const p=k.split(',');
@@ -288,3 +320,83 @@ function shipNetRemove(sid){
   NSH.list.delete(sid);
 }
 const NSH={list:new Map()};
+
+/* ---------------------------------------------------------------- decks
+   Ships are entities, not blocks, so the world's collision passes them by.
+   These helpers make the hull solid for the local player: you can walk on
+   the deck, bump into bulkheads, and you ride along when the ship moves.
+   Voxel lookup inverse-rotates the point into ship-local space, so it is
+   exact for any yaw. */
+function shipLocalCol(e,wx,wz){
+  const rx=wx-e.x,rz=wz-e.z;
+  const c=Math.cos(e.yaw),s=Math.sin(e.yaw);
+  /* world offset = R(yaw) * local offset, so local = R(-yaw) * world */
+  const lx=rx*c-rz*s,lz=rx*s+rz*c;
+  return [Math.floor(lx),Math.floor(lz)];
+}
+function shipVoxSolid(e,lx,ly,lz){
+  if(Math.abs(lx)>80||Math.abs(lz)>80||ly<-81||ly>80)return false;
+  const id=e.vox.get(lx+','+ly+','+lz);
+  if(id==null)return false;
+  const d=DEFS[id];
+  return d&&d.solid!==false;
+}
+/* deck surface just under the feet (topmost solid voxel whose top is at or
+   below footY+0.55), or null */
+function shipDeckUnder(e,wx,wy,wz){
+  const [lx,lz]=shipLocalCol(e,wx,wz);
+  const ly0=Math.round(wy-e.y);
+  for(let ly=Math.min(80,ly0);ly>=Math.max(-80,ly0-4);ly--){
+    if(shipVoxSolid(e,lx,ly,lz)&&e.y+ly+1<=wy+0.55)return e.y+ly+1;
+  }
+  return null;
+}
+/* does the player box (hw, height) intersect any solid ship voxel? */
+function shipBoxHit(e,wx,wy,wz,hw,h){
+  const corners=[[wx-hw,wz-hw],[wx+hw,wz-hw],[wx-hw,wz+hw],[wx+hw,wz+hw]];
+  const ly0=Math.floor(wy-e.y+0.05),ly1=Math.floor(wy-e.y+h-0.02);
+  for(const [cx,cz] of corners){
+    const [lx,lz]=shipLocalCol(e,cx,cz);
+    for(let ly=ly0;ly<=ly1;ly++)
+      if(shipVoxSolid(e,lx,ly,lz))return true;
+  }
+  return false;
+}
+/* nearest ship whose local bounds contain the point */
+function shipNear(wx,wy,wz){
+  let best=null,bd=1e9;
+  for(const e of entities){
+    if(e.t!=='ship'||e.dead)continue;
+    if(Math.abs(wy-e.y)>22)continue;
+    const d=Math.hypot(wx-e.x,wz-e.z);
+    const r=e.hw+3;
+    if(d>r)continue;
+    if(d<bd){bd=d;best=e;}
+  }
+  return best;
+}
+/* called from the player physics every frame (after moveBody): walls first
+   (revert the step), then deck support (snap + ride) */
+function shipPlayerPhysics(dt,px,pz){
+  if(!P||P.dead||P.ride||P.flying)return;
+  const e=shipNear(P.x,P.y,P.z);
+  if(!e)return;
+  /* a bulkhead in the way: undo this frame's horizontal move */
+  if(shipBoxHit(e,P.x,P.y+0.05,P.z,P.hw*0.9,1.75)){
+    if(!shipBoxHit(e,px,P.y+0.05,pz,P.hw*0.9,1.75)){
+      P.x=px;P.z=pz;P.vx=0;P.vz=0;
+    }else{
+      /* boxed in on both sides: push up onto the deck if one is there */
+      const deck=shipDeckUnder(e,P.x,P.y+0.6,P.z);
+      if(deck!=null&&deck-P.y<=1.05)P.y=deck;
+    }
+  }
+  /* gravity + deck support */
+  if(P.vy<=0.01){
+    const deck=shipDeckUnder(e,P.x,P.y,P.z);
+    if(deck!=null&&P.y>=deck-1.05&&P.y<=deck+0.55){
+      if(P.y<deck)P.y=deck;
+      P.vy=0;P.onGround=true;P.fallD=0;
+    }
+  }
+}

@@ -100,6 +100,7 @@ net/net0_client.js
 net/net1_ui.js
 net/net2_gui.js
 net/net3_sync.js
+net/net4_sync2.js
 
 # PART 57: the Malgorath Update
 malgorath/m0_contract.js
@@ -181,8 +182,14 @@ texpacks/tC_corpse.js
 # the same reason.
 backrooms/br0_backrooms.js
 backrooms/br1_levels.js
+backrooms/br2_dressing.js
 machines/mc0_machines.js
+machines/cr0_create.js
+machines/cr1_process.js
 features/p58_ships_guns.js
+features/p59_structures.js
+features/p60_worldedit.js
+features/p61_schematics.js
 
 # PART 57 HR block + Hyperreal model loaders
 malgorath/hr/m4_a_core.js

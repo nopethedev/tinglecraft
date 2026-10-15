@@ -36,6 +36,9 @@ function colInfo(x,z){
 }
 function stoneOrOre(x,y,z){
   const cx=x>>1,cy=y>>1,cz=z>>1;
+  /* andesite veins (the Create pack's raw material), coarser cells so it
+     shows up in workable patches rather than single blocks */
+  if(y<48&&h2(x>>2,y>>2,z>>2,SEED+9505)<.02)return B.ANDESITE;
   if(y<14&&h3(cx,cy,cz,SEED+9101)<.0016)return B.DIA_ORE;
   if(y<26&&h3(cx,cy,cz,SEED+9202)<.0026)return B.GOLD_ORE;
   if(y<44&&h3(cx,cy,cz,SEED+9303)<.006)return B.IRON_ORE;

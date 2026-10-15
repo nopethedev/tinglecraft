@@ -153,6 +153,7 @@ function chatSubmit(raw){
   const t=(''+(raw||'')).replace(/[\u0000-\u001f]/g,' ').trim().slice(0,200);
   if(!t)return;
   if(typeof NET!=='undefined'&&NET.on){netChatSubmit(t);return;}   /* multiplayer: the server is the room */
+  if(t.startsWith('//')){weCmd(t);return;}   /* WorldEdit lives on the double slash */
   if(t[0]!=='/'){chatLine('Dan',t,null,false);agBrainNudge();return;}
   const parts=t.slice(1).split(/\s+/);const cmd=(parts.shift()||'').toLowerCase();
   if(cmd==='msg'||cmd==='w'||cmd==='tell'||cmd==='whisper'){
@@ -200,6 +201,7 @@ function chatSubmit(raw){
     sysMsg('/msg <player> <text> (or /w) whisper | /r <text> reply | /think <player> read their mind');
     sysMsg('/bots [join|leave] AI players | /brain [status|on|off] the AI link | /pair <code> connect to the brain server');
     sysMsg('/backrooms visit the yellow rooms (an Exit Door block works too)');
+    sysMsg('Builders: //help opens WorldEdit (//wand, //set, //schem ...).');
     sysMsg('The AI players start with nothing and play by your survival rules: they chop, mine, craft, smelt and build only with what they gathered.');
     return;
   }

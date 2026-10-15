@@ -171,9 +171,12 @@ function tickMega(dt){
     megaNuke(b.x,b.y+0.5,b.z);
   }
 }
-function megaNuke(x,y,z){
+function megaNuke(x,y,z,fromNet){
   const n={x:Math.round(x),y:Math.round(y),z:Math.round(z),d:DIM};
   NUKES.push(n);
+  /* the crater is everyone's business now (net4): one relay, no echoes */
+  if(typeof NET!=='undefined'&&NET.on&&!NET.suppress&&!fromNet)
+    netSend({t:'nukex',x:n.x,y:n.y,z:n.z,dim:(DIM==='nether'?1:DIM==='aether'?2:DIM==='puppet'?3:DIM==='backrooms'?4:0)});
   /* the crater: everything to the void. bunkercrete politely declines. */
   const cx0=Math.floor((x-NK_RIM)/CH),cx1=Math.floor((x+NK_RIM)/CH);
   const cz0=Math.floor((z-NK_RIM)/CH),cz1=Math.floor((z+NK_RIM)/CH);
@@ -226,11 +229,15 @@ function megaNuke(x,y,z){
     else if((o.t==='car'||o.t==='skate'||o.t==='cart'||o.t==='boat'||o.t==='plane')&&od<NK_KILL)hitCar(o,99999);
     else if((o.t==='drop'||o.t==='ball')&&od<NK_RIM+4&&!crKeepDrop(o))removeEnt(o);
   }
-  /* the show */
-  NUKE.flash=1.8;
-  nukeShake(3.6,7);
-  playS('meganuke');
-  spawnMcloud(x,Math.max(2,y),z);
+  /* the show (a relayed nuke only performs if you are close enough) */
+  const pd2=P?Math.hypot(P.x-x,(P.y+0.9)-y,P.z-z):1e9;
+  const showOk=!fromNet||pd2<420;
+  if(showOk){
+    NUKE.flash=clamp(1.8-pd2*0.004,0.1,1.8);
+    nukeShake(3.6,7);
+    playS('meganuke');
+    spawnMcloud(x,Math.max(2,y),z);
+  }
 }
 function spawnMcloud(x,y,z){
   const G=new THREE.Group();

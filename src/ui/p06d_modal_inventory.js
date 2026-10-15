@@ -1,7 +1,8 @@
 /* ----- modal / inventory system ----- */
 const MODAL={kind:null,slots:[],grid:null,gw:0,be:null,bek:null};
 let cursorStack=null;
-function modalOpen(){return !!MODAL.kind||crOn||pcOpen||dlgOpen||casOpen||dselOpen||enchOpen||storeOpen||powOpen||winOpen||cmpOpen||dbgmOpen||patchOpen||setOpen||terrOpen||helpOpen||cineOpen||chatOpen||pguOn||presOn||mpGUIOpen();}
+function schemOpenState(){return (typeof schemOpen!=='undefined')&&schemOpen;}
+function modalOpen(){return !!MODAL.kind||crOn||pcOpen||dlgOpen||casOpen||dselOpen||enchOpen||storeOpen||powOpen||winOpen||cmpOpen||dbgmOpen||patchOpen||setOpen||terrOpen||helpOpen||cineOpen||chatOpen||pguOn||presOn||schemOpenState()||mpGUIOpen();}
 
 function slotDiv(cls){
   const d=document.createElement('div');d.className='slot'+(cls?' '+cls:'');
@@ -67,9 +68,9 @@ function mkSlot(parent,getf,setf,kind){
   });
   d.addEventListener('contextmenu',ev=>ev.preventDefault());
   /* hover: what is this thing? (Minecraft-style tooltip) */
-  d.addEventListener('pointerenter',ev=>{if(kind!=='palette')invTipShow(s.get(),ev.clientX,ev.clientY);});
+  d.addEventListener('pointerenter',ev=>invTipShow(s.get(),ev.clientX,ev.clientY));
   d.addEventListener('pointermove',ev=>{if(TIP&&TIP.style.display==='block')invTipShow(s.get(),ev.clientX,ev.clientY);
-    else if(kind!=='palette')invTipShow(s.get(),ev.clientX,ev.clientY);});
+    else invTipShow(s.get(),ev.clientX,ev.clientY);});
   d.addEventListener('pointerleave',()=>invTipHide());
   parent.appendChild(d);
   MODAL.slots.push(s);
@@ -110,7 +111,7 @@ function quickMove(s){
   if(!st)return;
   let dest=null;
   if(s.home==='inv'){
-    if(MODAL.kind==='chest')dest=MODAL.be.inv;
+    if(MODAL.kind==='chest'||MODAL.kind==='vault')dest=MODAL.be.inv;
     else if(MODAL.kind==='furnace'||MODAL.kind==='engine'){
       if(FUELS[st.id]!=null){const left=beAdd(MODAL.be,'fuel',st);s.set(left>0?st:null);redrawHotbar();return;}
       if(MODAL.kind==='engine')return;
@@ -245,7 +246,7 @@ function openModal(kind,bek){
   document.exitPointerLock&&document.exitPointerLock();
   const M=$('modal'),body=$('mbody');
   body.innerHTML='';
-  $('mtitle').textContent={inv:'Inventory',craft:'Crafting Table',furnace:'Furnace',chest:'Chest',creative:'Creative',pcan:'The Bin',plab:'Lab Bench',ptrans:'Transmogrifier',engine:'Steam Engine'}[kind];
+  $('mtitle').textContent={inv:'Inventory',craft:'Crafting Table',furnace:'Furnace',chest:'Chest',vault:'Item Vault',creative:'Creative',pcan:'The Bin',plab:'Lab Bench',ptrans:'Transmogrifier',engine:'Steam Engine'}[kind];
   if(kind==='inv'||kind==='craft'||kind==='pcan'||kind==='plab'||kind==='ptrans'){
     const gw=kind==='inv'?2:3;
     MODAL.gw=gw;MODAL.grid=Array(gw*gw).fill(null);
@@ -316,7 +317,7 @@ function openModal(kind,bek){
     top.appendChild(info);
     body.appendChild(top);
     addInvSlots(body);
-  }else if(kind==='chest'){
+  }else if(kind==='chest'||kind==='vault'){
     MODAL.be=blockEnts.get(bek);
     const be=MODAL.be;
     let row;
@@ -328,8 +329,21 @@ function openModal(kind,bek){
     }
     addInvSlots(body);
   }else if(kind==='creative'){
+    MODAL.ctab=MODAL.ctab||'all';
+    const tabs=document.createElement('div');tabs.className='ctabs';
+    const mkTab=(key,label)=>{
+      const b=document.createElement('button');b.className='mc-btn small ctab';b.textContent=label;
+      b.onclick=()=>{MODAL.ctab=key;openModal('creative');};
+      if(MODAL.ctab===key)b.classList.add('on');
+      tabs.appendChild(b);
+    };
+    mkTab('all','All');
+    mkTab('create','Create');
+    mkTab('backrooms','Backrooms');
+    body.appendChild(tabs);
     const pal=document.createElement('div');pal.className='palette';
-    const ids=Object.keys(DEFS).map(Number).filter(id=>id!==B.AIR&&id!==B.BEDROCK&&!DEFS[id].hide&&(!DEFS[id].pg)===(DIM!=='puppet'));
+    const ids=Object.keys(DEFS).map(Number).filter(id=>id!==B.AIR&&id!==B.BEDROCK&&!DEFS[id].hide&&(!DEFS[id].pg)===(DIM!=='puppet'))
+      .filter(id=>MODAL.ctab==='all'||(DEFS[id].cat||'')===MODAL.ctab);
     for(const id of ids){
       const s=mkSlot(pal,()=>({id,count:1}),()=>{},'palette');
       s.el.classList.add('pslot');

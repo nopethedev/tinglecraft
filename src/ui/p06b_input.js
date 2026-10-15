@@ -92,6 +92,7 @@ function setupInput(){
       else if(casOpen)closeCas();
       else if(dlgOpen)closeDlg();
       else if(pcOpen)closePC();
+      else if(typeof schemOpen!=='undefined'&&schemOpen)weCloseSchem();
       else if(modalOpen())closeModal();
       else if(playing&&!P.dead){if(paused)resumeGame();else pauseGame();}
     }

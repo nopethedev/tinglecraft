@@ -134,7 +134,10 @@ function updatePlayer(dt){
   }
   /* -- integrate -- */
   const wasG=P.onGround;
+  const _preX=P.x,_preZ=P.z;
   moveBody(P,P.vx*dt,P.vy*dt,P.vz*dt,P.sneak);
+  /* ships are solid now: deck support + bulkheads (p58) */
+  if(typeof shipPlayerPhysics==='function')shipPlayerPhysics(dt,_preX,_preZ);
   rampSnap(P,true,0.6);
   /* fall damage */
   if(!fly&&!P.inWater){
@@ -221,6 +224,8 @@ function doMine(dt){
     return;
   }
   if(!hit){MINE.active=false;MINE.prog=0;return;}
+  /* WorldEdit wand: left-click sets position 1 (no mining) */
+  if(hsg&&hsg.id===IT.WAND){MINE.active=false;MINE.prog=0;weSetPos(1,hit);return;}
   const dd=DEFS[hit.id];
   if(dd.hard<0||(MGP_ON&&mgProtected(hit.x,hit.y,hit.z,'mine'))){MINE.active=false;MINE.prog=0;return;}
   P.swing=Math.max(P.swing,0.6);
@@ -279,6 +284,10 @@ function doUse(dt){
       openDlg(am.e);return;
     }
   }
+  /* WorldEdit wand: right-click sets position 2 */
+  if(st&&st.id===IT.WAND&&rEdge&&hit){rEdge=false;weSetPos(2,hit);return;}
+  /* WorldEdit wand: right-click sets position 2 */
+  if(st&&st.id===IT.WAND&&rEdge&&hit){rEdge=false;weSetPos(2,hit);return;}
   /* drop The Big Dingle (air delivery only) */
   if(st&&st.id===IT.NUKE&&rEdge){
     rEdge=false;
@@ -327,6 +336,10 @@ function doUse(dt){
       else if(hd.interact==='furnace'){ensureBE(hit.x,hit.y,hit.z,'furnace');openModal('furnace',bkey(hit.x,hit.y,hit.z));}
       else if(hd.interact==='engine'){ensureBE(hit.x,hit.y,hit.z,'engine');openModal('engine',bkey(hit.x,hit.y,hit.z));}
       else if(hd.interact==='chest'){ensureBE(hit.x,hit.y,hit.z,'chest');openModal('chest',bkey(hit.x,hit.y,hit.z));}
+      else if(hd.interact==='vault'){ensureBE(hit.x,hit.y,hit.z,'vault');openModal('vault',bkey(hit.x,hit.y,hit.z));}
+      else if(hd.interact==='bearing')crBearingUse(hit);
+      else if(hd.interact==='vault'){ensureBE(hit.x,hit.y,hit.z,'vault');openModal('vault',bkey(hit.x,hit.y,hit.z));}
+      else if(hd.interact==='bearing')crBearingUse(hit);
       else if(hd.interact==='disp'){dispUse(hit.x,hit.y,hit.z);}
       else if(hd.interact==='cine')openCine();
       else if(hd.interact==='tnt'){setBlock(hit.x,hit.y,hit.z,B.AIR);primeTNT(hit.x,hit.y,hit.z,undefined,'Dan');playS('fuse');}

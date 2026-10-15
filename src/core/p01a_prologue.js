@@ -16,8 +16,8 @@
    ===================================================================== */
 'use strict';
 
-const GAME_VERSION = '7.2';
-const RELEASE_LABEL = 'Release 1.3';   /* the public name of this game version (docs/RELEASING.md): GAME_VERSION stays the internal, monotonic number */
+const GAME_VERSION = '7.3';
+const RELEASE_LABEL = 'Release 1.4';   /* the public name of this game version (docs/RELEASING.md): GAME_VERSION stays the internal, monotonic number */
 var HIT_HOW=null,EXPL_BY=null;  /* damage attribution (PART 53) */
 var TP={id:'og',q:-1,qr:1,hr:false,busy:false,want:null,shadow:false,mods:[],live:[],og:null,ogR:null,ogF:null,ev:{},warm:null,devTexBase:null};  /* texture packs (PART 54) */
 const SAVE_FORMAT  = 1;

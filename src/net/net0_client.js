@@ -83,6 +83,7 @@ function netDisconnect(quiet){
 }
 /* ---- outgoing chat + commands (hooked from chatSubmit in a9_ui.js) ---- */
 function netChatSubmit(t){
+  if(t.startsWith('//')){weCmd(t);return;}   /* WorldEdit runs client-side (admins) */
   const c=t.split(' ')[0].toLowerCase();
   if(c==='/shop'){openShop();return;}
   if(c==='/sell'){openSell();return;}
@@ -135,7 +136,8 @@ function netStartWorld(m){
   const px=st?st.x:sp[0],py=st?st.y:sp[1],pz=st?st.z:sp[2];
   applySave({f:1,seed:m.seed|0,mode:'s',time:+m.time||0.3,
     dim:(st&&st.dim)||'over',snl:0,
-    nukes:[],edits:m.edits||{},be:m.be||{},ents:[],gr:{},
+    nukes:(typeof netNukesFromWelcome==='function')?netNukesFromWelcome(m.nukes):[],
+    edits:m.edits||{},be:m.be||{},ents:[],gr:{},
     player:{x:px,y:py,z:pz,yaw:st?st.yaw:0,pitch:st?st.pitch:0,
       hp:st?st.hp:20,hunger:st?st.hun:20,sel:st?st.sel:0,
       spawn:(st&&st.spawn&&st.spawn.length===3)?st.spawn:[sp[0],sp[1],sp[2]],
@@ -435,6 +437,9 @@ function netMsg(m){
       }
       netSend({t:'rtp_res',i:best,x:bx,y:by,z:bz});
       break;}
+    case 'dropadd':if(typeof netDropAdd==='function')netDropAdd(m);break;
+    case 'dropdel':if(typeof netDropDel==='function')netDropDel(m.did);break;
+    case 'nukex':if(typeof netNuke==='function')netNuke(m);break;
     case 'pong':break;
   }
 }

@@ -114,6 +114,26 @@ SHOP = [
     {"n": "ship helm",  "id": 369, "p": 400},
     {"n": "bullet",     "id": 190, "p": 3},
     {"n": "shell",      "id": 191, "p": 6},
+    # the Create pack (v7.3)
+    {"n": "andesite",   "id": 376, "p": 3},
+    {"n": "casing",     "id": 377, "p": 12},
+    {"n": "cogwheel",   "id": 378, "p": 10},
+    {"n": "shaft",      "id": 379, "p": 6},
+    {"n": "water wheel","id": 380, "p": 60},
+    {"n": "press",      "id": 381, "p": 220},
+    {"n": "depot",      "id": 382, "p": 14},
+    {"n": "millstone",  "id": 383, "p": 160},
+    {"n": "mixer",      "id": 384, "p": 200},
+    {"n": "basin",      "id": 385, "p": 20},
+    {"n": "funnel",     "id": 386, "p": 40},
+    {"n": "chute",      "id": 387, "p": 24},
+    {"n": "vault",      "id": 388, "p": 150},
+    {"n": "bearing",    "id": 390, "p": 120},
+    {"n": "sail",       "id": 392, "p": 8},
+    {"n": "grate",      "id": 393, "p": 5},
+    {"n": "andesite alloy", "id": 370, "p": 18},
+    {"n": "iron sheet", "id": 371, "p": 26},
+    {"n": "bread",      "id": 374, "p": 6},
 ]
 
 # What the /sell GUI pays for one unit (DB). Things the shop sells are
@@ -491,6 +511,7 @@ class Server:
         w.setdefault("ships", {})
         w.setdefault("be", {})
         w.setdefault("pvp", True)
+        w.setdefault("nukes", [])
 
     # ------------------------------------------------------------- helpers
     def online(self, name):
@@ -674,6 +695,7 @@ class Server:
             "st": st,
             "set": acc.get("set") if isinstance(acc.get("set"), dict) else None,
             "be": w.get("be", {}),
+            "nukes": w.get("nukes", []),
             "ships": [[sid, s["d"], s["x"], s["y"], s["z"], s["yaw"]]
                       for sid, s in self.ships.items()],
             "mobs_list": [[mid, mo["type"], mo["x"], mo["y"], mo["z"], mo["yaw"],
@@ -750,6 +772,14 @@ class Server:
                 self.store.world["be"][k] = d
                 self.store.dirty = True
                 await self.broadcast({"t": "be", "k": k, "d": d}, exclude=p.name)
+        elif t == "dropadd":
+            await self.drop_add(p, m)
+        elif t == "dropdel":
+            did = str(m.get("did", ""))[:48]
+            if did and p.allow("dropdel", 20):
+                await self.broadcast({"t": "dropdel", "did": did}, exclude=p.name)
+        elif t == "nukex":
+            await self.nuke_x(p, m)
         elif t == "shipadd":
             await self.ship_add(p, m)
         elif t == "shippos":
@@ -837,7 +867,7 @@ class Server:
 
     async def block_edit(self, p, ck, lk, bid, old):
         try:
-            bid = int(bid) & 0xFF
+            bid = int(bid) & 0xFFFF   # chunks are Uint16Array since v7.3 (Create blocks 300+)
         except (TypeError, ValueError):
             return
         if not ck or "," not in ck or "," not in lk:
@@ -856,7 +886,7 @@ class Server:
                 return
         old_id = None
         try:
-            old_id = int(old) & 0xFF if old is not None else None
+            old_id = int(old) & 0xFFFF if old is not None else None
         except (TypeError, ValueError):
             old_id = None
         self.store.world["edits"].setdefault(ck, {})[lk] = bid
@@ -971,6 +1001,8 @@ class Server:
             if p.admin:
                 lines.append("Admin: /kick /ban /op /deop /say /give <player> <amount> "
                              "/time <0-1|day|night> /mobson /mobsoff /pvp /backrooms <level>")
+                lines.append("WorldEdit is // commands (//help, //wand, //set ...) - run them "
+                             "from chat right here; the loader is in the pause menu.")
             await self.sys_to(p, " | ".join(lines))
         elif cmd in ("list", "players", "online"):
             await self.sys_to(p, "Online (%d): %s" % (len(self.players), ", ".join(self.online_names())))
@@ -1912,13 +1944,61 @@ class Server:
             {"t": "teleport", "x": x, "y": y, "z": z, "dim": "over"}))
         asyncio.ensure_future(self.sys_to(p, "RTP: whoosh. (%d, %d)" % (tx, tz)))
 
+    # ------------------------------------------------------------- drops --
+    async def drop_add(self, p, m):
+        """A player threw an item: validate lightly, relay to everyone else."""
+        if not p.allow("dropadd", 20):
+            return
+        try:
+            x = round(float(m.get("x")), 2); y = round(float(m.get("y")), 2)
+            z = round(float(m.get("z")), 2)
+            vx = round(float(m.get("vx", 0)), 2); vy = round(float(m.get("vy", 0)), 2)
+            vz = round(float(m.get("vz", 0)), 2)
+            iid = int(m.get("id", 0)) & 0xFFFF
+            count = max(1, min(999, int(m.get("count", 1))))
+        except (TypeError, ValueError):
+            return
+        m2 = {"t": "dropadd", "did": str(m.get("did", ""))[:48] or p.name,
+              "id": iid, "count": count, "x": x, "y": y, "z": z,
+              "vx": vx, "vy": vy, "vz": vz}
+        if m.get("dur") is not None:
+            try:
+                m2["dur"] = max(0, min(65535, int(m.get("dur"))))
+            except (TypeError, ValueError):
+                pass
+        if isinstance(m.get("ench"), str) and len(m["ench"]) < 2000:
+            m2["ench"] = m["ench"]
+        await self.broadcast(m2, exclude=p.name)
+
+    # -------------------------------------------------------------- nukes --
+    async def nuke_x(self, p, m):
+        """The Big Dingle went off: store the crater and tell everyone."""
+        if not p.allow("nukex", 2):
+            return
+        try:
+            x = int(m.get("x")); y = int(m.get("y")); z = int(m.get("z"))
+            dim = int(m.get("dim", 0))
+        except (TypeError, ValueError):
+            return
+        if not (0 <= dim <= 4):
+            dim = 0
+        nukes = self.store.world.setdefault("nukes", [])
+        nukes.append([x, y, z, dim])
+        if len(nukes) > 128:
+            del nukes[:len(nukes) - 128]
+        self.store.dirty = True
+        self.console("%s detonated a nuke at (%d, %d, %d)" % (p.name, x, y, z))
+        await self.broadcast({"t": "nukex", "x": x, "y": y, "z": z, "dim": dim},
+                             exclude=p.name)
+
     # -------------------------------------------------------------- ships --
     async def ship_add(self, p, m):
         if not p.allow("shipadd", 3):
             return
         sid = str(m.get("sid", ""))[:24]
         d = str(m.get("d", ""))
-        if not sid or not d or len(d) > 60000:
+        cap = 900000 if p.admin else 60000   # admins assemble whole districts
+        if not sid or not d or len(d) > cap:
             return
         try:
             x = round(float(m.get("x")), 2); y = round(float(m.get("y")), 2)

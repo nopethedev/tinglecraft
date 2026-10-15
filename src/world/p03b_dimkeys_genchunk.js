@@ -55,7 +55,7 @@ function genChunk(cx,cz){
   if(DIM==='aether')return genChunkAether(cx,cz);
   if(DIM==='puppet')return genChunkPuppet(cx,cz);
   if(DIM==='backrooms')return genChunkBackrooms(cx,cz);
-  const blocks=new Uint8Array(CH*WH*CH);
+  const blocks=new Uint16Array(CH*WH*CH);
   const x0=cx*CH,z0=cz*CH;
   const cf=genCaveField(x0,z0);
   for(let lx=0;lx<CH;lx++)for(let lz=0;lz<CH;lz++){
@@ -64,7 +64,9 @@ function genChunk(cx,cz){
     const caveLimit=(h>=SEA+1)?h:h-4;
     for(let y=0;y<WH;y++){
       let id=B.AIR;
-      if(y===0)id=B.BEDROCK;
+      /* deeper bedrock: a solid floor plus a ragged 4-layer shoulder, the
+         classic way. Deterministic per column, same on every client. */
+      if(y===0||(y<=4&&h2(wx*7+y*131,wz*3+y,SEED+4477)<1.05-y*0.24))id=B.BEDROCK;
       else if(y<=h){
         if(y>3&&y<=caveLimit&&caveSample(cf,lx,y,lz))id=(y<9?B.LAVA:B.AIR);
         else if(y===h)id=topBlock(b,h,wx,wz);
@@ -106,6 +108,8 @@ function genChunk(cx,cz){
   stampVillages(blocks,x0,z0);
   /* theme parks */
   stampParks(blocks,x0,z0);
+  /* ruins of the v7.3 wilds: pyramids, igloos, watchtowers, circles, wrecks */
+  if(typeof stampStructures==='function')stampStructures(blocks,x0,z0);
   /* buried dungeons + lone spawner vaults */
   stampWDungeons(blocks,x0,z0);
   stampCells(blocks,x0,z0);

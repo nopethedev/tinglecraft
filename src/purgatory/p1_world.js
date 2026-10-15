@@ -235,7 +235,7 @@ function mwKnuckles(cx,cz){const n=1+Math.floor(mwH(cx,cz,0,25)*3),o=[];
   for(let k=0;k<n;k++)o.push(Math.floor(mwH(cx,cz,k+1,25)*256));return o;}
 
 /* ---- the generator ---- */
-function genChunkPuppet(cx,cz){const bl=new Uint8Array(CH*WH*CH),x0=cx*CH,z0=cz*CH;
+function genChunkPuppet(cx,cz){const bl=new Uint16Array(CH*WH*CH),x0=cx*CH,z0=cz*CH;
   if(x0>111||x0+CH<=-111||z0>282||z0+CH<=-315)return bl;
   const cf=mwCaveField(x0,z0),kn=mwKnuckles(cx,cz);
   for(let lx=0;lx<CH;lx++)for(let lz=0;lz<CH;lz++){const x=x0+lx,z=z0+lz;

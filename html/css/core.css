@@ -97,6 +97,8 @@ select.mc-in{appearance:auto}
 .palette{display:flex;flex-wrap:wrap;max-width:516px;max-height:clamp(116px,calc(100vh / var(--uiz) - 444px),248px);overflow-y:auto;
   background:#9d9d9d;border:2px solid;border-color:#373737 #fff #fff #373737;padding:3px;margin-bottom:6px}
 .tslot{background:#b06a6a}
+.ctabs{display:flex;gap:4px;margin-bottom:5px}
+.ctab.on{outline:2px solid #fff;font-weight:bold}
 #rlist{max-height:clamp(120px,calc(34vh / var(--uiz)),220px)!important;overflow-y:auto;background:#b5b5b5;border:2px solid;
   border-color:#373737 #fff #fff #373737;margin:6px 0;width:100%}
 .rrow{display:flex;align-items:center;gap:5px;padding:3px 6px;cursor:pointer;font-size:13px}

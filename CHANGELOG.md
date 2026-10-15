@@ -21,6 +21,62 @@ A version appears once `npm run release` has recorded it in `tests/fixtures/ship
 
 <!-- generated from PATCH_LOG: do not edit below this line (up to the next manual block) -->
 
+## Release 1.4 — The Industrial Update
+
+*Game version 7.3, released 2026-10-15.*
+
+- CREATE, THE FACTORY PACK: the two-block machine shop grows into a whole mod-pack. Water Wheels, Cogwheels and Shafts carry kinetic power from burning Steam Engines, spinning Windmill Bearings and turning Water Wheels to everything on the network — belts no longer need an engine in arm’s reach. The Mechanical Press stamps ingots into sheets, the Millstone grinds cobble to gravel to sand and logs into planks, the Mixer washes gravel (iron pans out sometimes), Brass Funnels file drops into the chests below them and Chutes drop items straight down the column. Item Vaults hold 54 slots. A whole new creative tab (and the shop) carries the kit.
+- WORLDEDIT: the classic builder kit lands with its double-slash commands — //help shows them (//wand, //pos1, //pos2, //set, //replace, //walls, //outline, //count, //size, //expand, //copy, //cut, //paste, //undo, //redo, //limit). The wand is a craftable item: left-click for position 1, right-click for position 2. In multiplayer WorldEdit is admin-only.
+- LITEMATICS AND SCHEMATICS: the pause menu grows a Schematics button (or type //schem). Load a .litematic, a Sponge .schem or an old .schematic file, see its size, and paste it at your feet as real blocks — Minecraft block names map onto the game’s, unknowns land as cobblestone, and every paste is undoable with //undo.
+- NUKES FOR EVERYONE: The Big Dingle was the most client-sided thing in the game — now the mushroom cloud is a server-wide event. Everyone sees the same crater, the blast is stored in the world save, and joining players inherit every crater ever made.
+- THROWS GO SERVER-WIDE: Q-thrown items (and death drops) fly for everybody now, and picking one up takes it away for everyone.
+- SHIPS, LEVELLED UP: the hull is solid — walk the deck, bump the bulkheads, ride your ship while standing on it. Admins assemble anything: no block restrictions, no minimum size, no 1400-block cap, so yes, that district can sail.
+- THE BACKROOMS, ACCURATE: every level gets its true materials — stained wallpaper and humming lights in the Lobby, concrete and supply crates in the Habitable Zone, pipe-lined tunnels in Pipe Dreams, red carpet and numbered doors in the Terror Hotel, a wheat field under an overcast sky, glass-windowed towers in the Endless City, green code on the Matrix’s walls, crates to the ceiling in the Warehouse, and the Poolrooms’ skylights and pools of every depth.
+- THE WILDS, DRESSED: desert pyramids with a trap worth noting, igloos with furnaces, ruined watchtowers, glowstone stone circles, and shipwrecks beached and sunk. Bedrock now has a ragged four-layer shoulder — bring a better pick.
+- CREATIVE MENU: tabs at last (All / Create / Backrooms), and every slot in the creative palette shows the full Minecraft-style tooltip.
+
+## Release 1.3 — Together, For Real
+
+*Game version 7.2.*
+
+- YOUR PROGRESS FOLLOWS YOU: rejoining a server restores your whole self — inventory, armour, position, dimension, hunger, xp, hotbar — straight from your account. Chests, furnaces and steam engines sync and save too, so nobody loses a base to a logout.
+- ADMIN RULES PERSIST: admins' debug settings (game rules) are saved per account and handed back on rejoin. The debug menu stays admin-only in multiplayer.
+- THE BACKROOMS DEEPENS: twenty levels, lore-flavoured — the Lobby, Pipe Dreams, the Terror Hotel, Lights Out, Thalassophobia, the Cave System, the Suburbs, the Field of Wheat, the Endless City, the Matrix, Paradise, the Flooded Halls, the Carrier, the Attic, the Warehouse... fall through a hole in the floor to noclip deeper; rare Exit Doors climb back up (level 0's door still leaves for good, and it is rarer now). Level 21 is the Poolrooms, level 22 is The Exit: a small bright room whose door takes you home. Admins can jump anywhere: /backrooms 1-20 (or pool, exit).
+- THE NAN TRAP IS FIXED: leaving the Backrooms no longer drops you into "NaN NaN NaN". Wherever you noclipped in from is where you come out.
+- SHIPS: craft the Magical Ship Helm (planks, sticks, a diamond), build a boat out of ship blocks (25+ of planks, logs, glass, wool...), aim the helm at it and use it — the whole structure lifts out of the world as one drivable ship and the helm becomes the driver's seat. WASD to sail (fast on water), Shift to step off, sneak + right-click to break it back into blocks. Ships sync in multiplayer and persist in the world save.
+- GUNS: the M9, the AK47 (full-auto) and the Remington 870 (nine-pellet pump) join the armoury — craft them or buy them in the server shop. Their bullets can hit other players (server-validated; /pvp toggles it). Death messages tell everyone who went and how.
+- FEATURED SERVER: the multiplayer list now ships with a featured server (play.arcside.us.kg) pinned at the top. Add your own below it as always.
+- SMARTER RTP: /rtp now checks candidates against the real terrain and only lands you on dry land — no more fishing yourself out of the ocean.
+- ITEM TOOLTIPS: hover anything in any inventory, chest, furnace or shop slot to see what it is and what it does — damage, ammo, hunger, hardness, sell price.
+- VERY SIMPLE ANTICHEAT: the server watches for impossible movement, edits out of reach, kills from across the map, and inventories that grow without a witnessed source — duped items get you kicked (and eventually banned). Selling now pays only from your mining/loot/purchase ledger.
+- MOBS, MORE SYNCED: everyone sees the same mobs the moment they join, owner-side deaths settle through the server (no more zombie stood still for a minute), relayed mobs no longer double-drop their loot, and mob hits are reach-checked.
+- THE SNAIL IS OFF BY DEFAULT. He waits in the debug menu, patient as ever, for anyone who flips him back on.
+- PLUS: batched block edits (big builds and ships arrive as one message), keepalive and rate limits, an economy ledger, and the live mob list rides the welcome packet.
+
+## Release 1.2 — Sync and Steam
+
+*Game version 7.1.*
+
+- MULTIPLAYER, IN SYNC: the server owns the clock — everyone shares one day/night. The item you hold shows in your hand for other players. Mobs are now shared too: the server spawns and relays them, one client simulates each mob, and they chase (and hit) every player nearby.
+- ADMIN ONLY: the F3 debug screen and the Debug Menu are admin-only while playing multiplayer. Singleplayer is unchanged.
+- SERVER GUIs: /shop opens a proper shop window (pick an item, pick a count, Buy). /sell opens a sell menu that pays for loot — or one Sell-everything button. /homes opens a homes menu: set home here, go, delete (5 homes, 10 for admins). All three also sit in the pause menu while playing multiplayer.
+- ADMIN PANEL: admins get a Server Admin button — set any player balance, +DB, kick, ban, op/deop, bring a player to you or go to them, set the time (day/noon/night/midnight), set spawn here, toggle mob spawning, set the MOTD, save the server.
+- REVERSE PROXY FRIENDLY: connect with ws://host:port/path or wss://host/path — any path works, so nginx/caddy can front the server. Plain HTTP checks get a friendly answer. See docs/MULTIPLAYER.md for ready-made configs.
+- MACHINES (a Create-flavoured pack): Steam Engine (right-click, feed it coal or planks; it puffs smoke and powers every belt within 3 blocks) and the Conveyor Belt (carries drops, mobs and you along its axis; belts line up with their neighbours). Belts beside a burning FURNACE become a heated section: drops that ride over it get smelted — ore in one end, ingots out the other. Craft them from iron and cobble, or buy them in the server shop.
+- PLUS: keepalive pings both ways so dead tabs drop cleanly, balances and homes refresh live in the open menus, and mob kills pay the shooter a DB bounty with loot dropped straight into their pack.
+
+## Release 1.1 — Tingle Craft: The Multiplayer Update
+
+*Game version 7.0.*
+
+- Tingle Craft is here: this build of the game continues as Tingle Craft, based on DingleCraft — full credit to the original.
+- MULTIPLAYER: a Multiplayer button on the title screen. Add servers (name + address) like a certain block game, direct connect, and join.
+- server.py ships in the repo: a dependency-free Python multiplayer server. Run "python server.py --admin YourName" and it writes server_data/.
+- Accounts with passwords, hashed and stored on the server: nobody can join as you by typing your name. Admins are set by the server owner.
+- Server commands: /rtp, /pay, /money, /shop, /tpa, /tpaccept, /msg, /list, plus /kick, /ban and /op for admins. The world, balances and bans persist in server_data/.
+- THE BACKROOMS: a new dimension of mono-yellow rooms. Craft an Exit Door (planks, glowstone, a diamond) and click it — or type /backrooms on a server. Click the door again to leave. Do not noclip on purpose.
+- MOBILE: touch gets a chat button and a fullscreen button, plus the joystick, jump, sneak, inventory, drop and pause buttons it already had.
+
 ## Release 1.0 — Replays
 
 *Game version 6.9, released 2026-10-09.*
